@@ -52,6 +52,46 @@ class MealSectionCard extends ConsumerWidget {
     );
   }
 
+  Future<void> _confirmDeleteLog(BuildContext context, WidgetRef ref, MealLog log) async {
+    final foodName = log.food?.name ?? 'este alimento';
+    final amountText = '${log.consumedAmount.toStringAsFixed(0)}g';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remover Alimento'),
+        content: Text(
+          'Deseja remover "$foodName" ($amountText) de ${mealType.detailedLabel}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.dangerColor,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Remover', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(mealLogsProvider.notifier).deleteMealLog(log.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"$foodName" foi removido de ${mealType.detailedLabel}.'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     double totalCalories = 0.0;
@@ -143,9 +183,8 @@ class MealSectionCard extends ConsumerWidget {
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 16, color: Colors.grey),
-                          onPressed: () {
-                            ref.read(mealLogsProvider.notifier).deleteMealLog(log.id);
-                          },
+                          tooltip: 'Remover da refeição',
+                          onPressed: () => _confirmDeleteLog(context, ref, log),
                         ),
                       ],
                     ),
