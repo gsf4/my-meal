@@ -43,7 +43,8 @@ class SettingsRepository {
         savedModel.trim().isNotEmpty &&
         savedModel != 'gemini-1.5-flash' &&
         savedModel != 'gemini-2.5-flash' &&
-        savedModel != 'gemini-2.0-flash') {
+        savedModel != 'gemini-2.0-flash' &&
+        savedModel != 'gemini-3.8-flash') {
       return savedModel.trim();
     }
     return AppConstants.defaultGeminiModel;

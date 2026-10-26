@@ -43,7 +43,7 @@ void main() {
       expect(models.contains('text-embedding-004'), isFalse);
     });
 
-    test('resolveBestModel prioriza modelos Flash 3.8 e salva em cache', () async {
+    test('resolveBestModel prioriza modelos Flash 3.5-lite para alta disponibilidade e salva em cache', () async {
       final mockClient = MockClient((request) async {
         final sampleResponse = {
           'models': [
@@ -67,22 +67,22 @@ void main() {
       final service = GeminiVoiceService(httpClient: mockClient);
       final bestModel = await service.resolveBestModel('fake-api-key');
 
-      expect(bestModel, 'gemini-3.8-flash');
+      expect(bestModel, 'gemini-3.5-flash-lite');
 
       // Verifica se salvou nas SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('gemini_model'), 'gemini-3.8-flash');
+      expect(prefs.getString('gemini_model'), 'gemini-3.5-flash-lite');
     });
 
-    test('resolveBestModel ignora modelos legados no cache (como gemini-1.5-flash e 2.5-flash)', () async {
+    test('resolveBestModel ignora modelos sobrecarregados/legados no cache (como gemini-1.5-flash, 2.5-flash e 3.8-flash)', () async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('gemini_model', 'gemini-2.5-flash');
+      await prefs.setString('gemini_model', 'gemini-3.8-flash');
 
       final mockClient = MockClient((request) async {
         final sampleResponse = {
           'models': [
             {
-              'name': 'models/gemini-3.8-flash',
+              'name': 'models/gemini-3.5-flash-lite',
               'supportedGenerationMethods': ['generateContent'],
             },
           ]
@@ -93,7 +93,7 @@ void main() {
       final service = GeminiVoiceService(httpClient: mockClient);
       final bestModel = await service.resolveBestModel('fake-api-key');
 
-      expect(bestModel, 'gemini-3.8-flash');
+      expect(bestModel, 'gemini-3.5-flash-lite');
     });
   });
 }

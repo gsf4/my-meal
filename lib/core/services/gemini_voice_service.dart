@@ -60,7 +60,8 @@ class GeminiVoiceService {
           savedModel.trim().isNotEmpty &&
           savedModel != 'gemini-1.5-flash' &&
           savedModel != 'gemini-2.5-flash' &&
-          savedModel != 'gemini-2.0-flash') {
+          savedModel != 'gemini-2.0-flash' &&
+          savedModel != 'gemini-3.8-flash') {
         return savedModel.trim();
       }
     }
@@ -69,32 +70,41 @@ class GeminiVoiceService {
     String selectedModel = AppConstants.defaultGeminiModel;
 
     if (availableModels.isNotEmpty) {
-      // Prioridade 1: Modelos Flash 3.8
-      final flash38 = availableModels.firstWhere(
-        (m) => m.contains('flash') && m.contains('3.8'),
+      // Prioridade 1: Modelos Flash 3.5 (ex: gemini-3.5-flash-lite - alta capacidade e sem sobrecarga 503)
+      final flash35 = availableModels.firstWhere(
+        (m) => m.contains('flash') && m.contains('3.5'),
         orElse: () => '',
       );
-      if (flash38.isNotEmpty) {
-        selectedModel = flash38;
+      if (flash35.isNotEmpty) {
+        selectedModel = flash35;
       } else {
-        // Prioridade 2: Modelos Flash 3.6 ou 3.5 (ex: gemini-3.5-flash-lite)
-        final flash3x = availableModels.firstWhere(
-          (m) => m.contains('flash') && (m.contains('3.6') || m.contains('3.5') || m.contains('3.')),
+        // Prioridade 2: Modelos Flash 3.8
+        final flash38 = availableModels.firstWhere(
+          (m) => m.contains('flash') && m.contains('3.8'),
           orElse: () => '',
         );
-        if (flash3x.isNotEmpty) {
-          selectedModel = flash3x;
+        if (flash38.isNotEmpty) {
+          selectedModel = flash38;
         } else {
-          // Prioridade 3: Qualquer variante Flash
-          final anyFlash = availableModels.firstWhere(
-            (m) => m.contains('flash'),
+          // Prioridade 3: Qualquer variante Flash 3.x
+          final flash3x = availableModels.firstWhere(
+            (m) => m.contains('flash') && m.contains('3.'),
             orElse: () => '',
           );
-          if (anyFlash.isNotEmpty) {
-            selectedModel = anyFlash;
+          if (flash3x.isNotEmpty) {
+            selectedModel = flash3x;
           } else {
-            // Prioridade 4: Primeiro modelo com generateContent
-            selectedModel = availableModels.first;
+            // Prioridade 4: Qualquer modelo Flash
+            final anyFlash = availableModels.firstWhere(
+              (m) => m.contains('flash'),
+              orElse: () => '',
+            );
+            if (anyFlash.isNotEmpty) {
+              selectedModel = anyFlash;
+            } else {
+              // Prioridade 5: Primeiro modelo com generateContent
+              selectedModel = availableModels.first;
+            }
           }
         }
       }
@@ -161,7 +171,6 @@ Regras obrigatórias:
         apiKey: cleanApiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
-          temperature: 0.2,
         ),
       );
 
@@ -179,16 +188,24 @@ Regras obrigatórias:
     try {
       responseText = await executeGenerationWith(activeModel);
     } catch (e) {
+      Object lastError = e;
       final errLower = e.toString().toLowerCase();
-      final isModelError = errLower.contains('not found') ||
+      final isRecoverableError = errLower.contains('not found') ||
           errLower.contains('not supported') ||
           errLower.contains('no longer available') ||
           errLower.contains('deprecated') ||
           errLower.contains('update your code') ||
           errLower.contains('404') ||
-          errLower.contains('is not found for api version');
+          errLower.contains('is not found for api version') ||
+          errLower.contains('503') ||
+          errLower.contains('high demand') ||
+          errLower.contains('unavailable') ||
+          errLower.contains('overloaded') ||
+          errLower.contains('429') ||
+          errLower.contains('resource has been exhausted') ||
+          errLower.contains('resource_exhausted');
 
-      if (isModelError) {
+      if (isRecoverableError) {
         // 1. Tenta extrair sugestão direta da mensagem de erro do Google (ex: "use models/gemini-3.8-flash")
         final suggestionMatch = RegExp(r'use (?:models/)?([a-zA-Z0-9\.\-_]+)').firstMatch(e.toString());
         if (suggestionMatch != null) {
@@ -199,39 +216,68 @@ Regras obrigatórias:
               responseText = await executeGenerationWith(activeModel);
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString(AppConstants.keyGeminiModel, activeModel);
-            } catch (_) {}
+            } catch (err) {
+              lastError = err;
+            }
           }
         }
 
-        // 2. Se ainda não obteve resposta, tenta redescobrir o modelo ativo consultando a API
-        if (responseText == null) {
-          final refreshedModel = await resolveBestModel(cleanApiKey, forceRefresh: true);
-          if (refreshedModel != activeModel) {
-            try {
-              activeModel = refreshedModel;
-              responseText = await executeGenerationWith(activeModel);
-            } catch (_) {}
-          }
-        }
-
-        // 3. Se ainda não obteve resposta, itera pela lista de fallbacks conhecidos
+        // 2. Se for 503 (alta demanda) ou se ainda não obteve resposta, percorre a lista de fallbacks conhecidos
         if (responseText == null) {
           for (final candidate in AppConstants.fallbackGeminiModels) {
             if (candidate == activeModel) continue;
             try {
               responseText = await executeGenerationWith(candidate);
-              // Salva o modelo que funcionou para as próximas chamadas
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString(AppConstants.keyGeminiModel, candidate);
               break;
-            } catch (_) {}
+            } catch (err) {
+              lastError = err;
+            }
+          }
+        }
+
+        // 3. Se ainda não obteve resposta, tenta redescobrir o modelo ativo consultando a API
+        if (responseText == null) {
+          try {
+            final refreshedModel = await resolveBestModel(cleanApiKey, forceRefresh: true);
+            if (refreshedModel != activeModel) {
+              activeModel = refreshedModel;
+              responseText = await executeGenerationWith(activeModel);
+            }
+          } catch (err) {
+            lastError = err;
+          }
+        }
+
+        // 4. Se o erro for 503 (alta demanda) e todos falharam, espera 1.5s e faz uma tentativa final
+        if (responseText == null && (errLower.contains('503') || errLower.contains('high demand'))) {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          try {
+            responseText = await executeGenerationWith(AppConstants.defaultGeminiModel);
+          } catch (err) {
+            lastError = err;
           }
         }
       }
 
-      // Se após todas as tentativas não obteve sucesso, relança a exceção original
+      // Se após todas as tentativas não obteve sucesso, lança exceção com mensagem amigável
       if (responseText == null) {
-        rethrow;
+        String formatFriendlyError(Object error) {
+          final str = error.toString();
+          if (str.contains('503') || str.contains('high demand') || str.contains('UNAVAILABLE')) {
+            return 'Os servidores do Google Gemini estão com alta demanda temporária no momento (503). Por favor, tente novamente em alguns instantes.';
+          }
+          if (str.contains('429') || str.contains('RESOURCE_EXHAUSTED')) {
+            return 'Limite de requisições do Gemini atingido temporariamente. Aguarde alguns instantes.';
+          }
+          if (str.contains('API_KEY_INVALID') || str.contains('invalid api key')) {
+            return 'Chave de API do Gemini inválida. Verifique sua chave nas Configurações.';
+          }
+          return str.replaceFirst(RegExp(r'^Exception:\s*'), '');
+        }
+
+        throw Exception(formatFriendlyError(lastError));
       }
     }
 

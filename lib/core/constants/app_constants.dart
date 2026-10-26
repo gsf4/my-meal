@@ -16,12 +16,10 @@ class AppConstants {
 
   // Modelo Gemini padrão
   static const String keyGeminiModel = 'gemini_model';
-  static const String defaultGeminiModel = 'gemini-3.8-flash';
+  static const String defaultGeminiModel = 'gemini-3.5-flash-lite';
   static const List<String> fallbackGeminiModels = [
-    'gemini-3.8-flash',
     'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
     'gemini-3.6-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
   ];
 }
