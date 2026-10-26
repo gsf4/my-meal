@@ -6,6 +6,7 @@ import 'package:my_meal/core/theme/app_theme.dart';
 import 'package:my_meal/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:my_meal/features/foods/presentation/screens/food_list_screen.dart';
 import 'package:my_meal/features/settings/presentation/screens/settings_screen.dart';
+import 'package:my_meal/features/splash/presentation/screens/animated_splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +29,12 @@ void main() async {
 }
 
 class MyMealApp extends StatelessWidget {
-  const MyMealApp({super.key});
+  final bool showSplash;
+
+  const MyMealApp({
+    super.key,
+    this.showSplash = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +44,7 @@ class MyMealApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const MainNavigationShell(),
+      home: showSplash ? const AnimatedSplashScreen() : const MainNavigationShell(),
     );
   }
 }

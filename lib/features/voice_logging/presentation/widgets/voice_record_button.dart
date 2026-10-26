@@ -205,6 +205,7 @@ class _VoiceRecordButtonState extends ConsumerState<VoiceRecordButton>
     }
 
     return FloatingActionButton.extended(
+      heroTag: 'fab_voice_record',
       onPressed: _toggleRecording,
       backgroundColor: AppTheme.primaryColor,
       foregroundColor: Colors.white,

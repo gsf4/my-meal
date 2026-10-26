@@ -211,6 +211,7 @@ class _FoodListScreenState extends ConsumerState<FoodListScreen> {
         error: (err, _) => Center(child: Text('Erro ao carregar alimentos: $err')),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_food_list',
         onPressed: () => _openFoodForm(),
         icon: const Icon(Icons.add),
         label: const Text('Novo Alimento'),

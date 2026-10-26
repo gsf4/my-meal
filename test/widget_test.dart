@@ -6,7 +6,7 @@ void main() {
   testWidgets('MyMealApp carrega casca de navegação', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MyMealApp(),
+        child: MyMealApp(showSplash: false),
       ),
     );
 
