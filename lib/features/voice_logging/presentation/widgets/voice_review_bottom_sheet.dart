@@ -386,10 +386,13 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                                         children: [
                                           Text(
                                             '${item.grams.toStringAsFixed(0)}g',
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
                                           ),
                                           const SizedBox(width: 4),
-                                          const Icon(Icons.edit, size: 14, color: Colors.grey),
+                                          const Icon(Icons.edit, size: 14, color: Colors.black54),
                                         ],
                                       ),
                                     ),
