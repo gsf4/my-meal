@@ -81,6 +81,16 @@ class MealLogsNotifier extends StateNotifier<AsyncValue<List<MealLog>>> {
     await loadLogs();
   }
 
+  Future<void> updateMealLog(MealLog log) async {
+    await _repository.updateMealLog(log);
+    await loadLogs();
+  }
+
+  Future<void> updateConsumedAmount(String id, double newAmount) async {
+    await _repository.updateMealLogAmount(id, newAmount);
+    await loadLogs();
+  }
+
   Future<void> deleteMealLog(String id) async {
     await _repository.deleteMealLog(id);
     await loadLogs();

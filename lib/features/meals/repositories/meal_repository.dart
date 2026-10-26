@@ -157,6 +157,16 @@ class MealRepository {
     );
   }
 
+  Future<void> updateMealLogAmount(String id, double newAmount) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'meal_logs',
+      {'consumed_amount': newAmount},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> deleteMealLog(String id) async {
     final db = await _dbHelper.database;
     await db.delete(

@@ -11,6 +11,9 @@ import 'package:my_meal/features/meals/repositories/meal_repository.dart';
 class TestMealNotifier extends MealLogsNotifier {
   bool deleteCalled = false;
   String? deletedId;
+  bool updateAmountCalled = false;
+  String? updatedId;
+  double? updatedAmount;
 
   TestMealNotifier() : super(FakeMealRepo(), DateTime(2026, 10, 26)) {
     state = const AsyncValue.data([]);
@@ -20,6 +23,13 @@ class TestMealNotifier extends MealLogsNotifier {
   Future<void> deleteMealLog(String id) async {
     deleteCalled = true;
     deletedId = id;
+  }
+
+  @override
+  Future<void> updateConsumedAmount(String id, double newAmount) async {
+    updateAmountCalled = true;
+    updatedId = id;
+    updatedAmount = newAmount;
   }
 }
 
@@ -97,5 +107,66 @@ void main() {
     expect(find.text('Remover Alimento'), findsNothing);
     expect(notifier.deleteCalled, isTrue);
     expect(notifier.deletedId, 'log-1');
+  });
+
+  testWidgets('Ao clicar no alimento registrado, exibe diálogo de edição de quantidade e salva a alteração', (WidgetTester tester) async {
+    final food = FoodItem(
+      id: 'f-1',
+      name: 'Pão de Forma',
+      calories: 140,
+      protein: 4.5,
+      carbs: 26,
+      fat: 1.5,
+    );
+
+    final log = MealLog(
+      id: 'log-1',
+      date: DateTime(2026, 10, 26),
+      mealType: MealType.breakfast,
+      foodId: food.id,
+      consumedAmount: 50,
+      food: food,
+    );
+
+    final notifier = TestMealNotifier();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealLogsProvider.overrideWith((ref) => notifier),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MealSectionCard(
+              mealType: MealType.breakfast,
+              logs: [log],
+              selectedDate: DateTime(2026, 10, 26),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Clica no item de alimento
+    await tester.tap(find.text('Pão de Forma'));
+    await tester.pumpAndSettle();
+
+    // Diálogo de edição deve abrir
+    expect(find.text('Editar Quantidade'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Altera a quantidade para 75
+    await tester.enterText(find.byType(TextField), '75');
+    await tester.pumpAndSettle();
+
+    // Clica em Salvar
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    // Diálogo fechou e notifier foi chamado com os valores corretos
+    expect(find.text('Editar Quantidade'), findsNothing);
+    expect(notifier.updateAmountCalled, isTrue);
+    expect(notifier.updatedId, 'log-1');
+    expect(notifier.updatedAmount, 75.0);
   });
 }
