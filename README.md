@@ -21,6 +21,10 @@
 - ⚙️ **Metas Personalizadas & Chave Gemini**:
   - Ajuste de metas nutricionais diárias a qualquer momento.
   - Suporte híbrido para carregar a chave de API do Gemini via `.env` ou tela de Ajustes do aplicativo.
+- 📦 **Backup, Exportação e Importação de Dados**:
+  - **Backup Completo em JSON**: exporte e restaure todos os alimentos, histórico de refeições e metas com 1 clique para não perder seus dados.
+  - **Planilhas CSV para Excel / Google Sheets**: exporte seu histórico de refeições e catálogo de alimentos formatados com delimitador `;` e BOM UTF-8 para visualização perfeita no Excel.
+  - **Importação em Lote**: importe planilhas CSV de alimentos diretamente para o banco local.
 
 ---
 

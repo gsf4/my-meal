@@ -39,7 +39,8 @@ myMeal/
 │   │   ├── database/database_helper.dart        # Inicialização do SQLite, tabelas e seed de 20 alimentos TACO
 │   │   └── services/
 │   │       ├── audio_recorder_service.dart      # Gravação do microfone com o pacote record
-│   │       └── gemini_voice_service.dart        # Envio multimodal do áudio para o Gemini e parse do JSON
+│   │       ├── gemini_voice_service.dart        # Envio multimodal do áudio para o Gemini e parse do JSON
+│   │       └── backup_service.dart              # Backup/Restauração JSON e exportação/importação CSV
 │   └── features/
 │       ├── foods/                               # Catálogo e CRUD de alimentos
 │       │   ├── models/food_item.dart            # Entidade FoodItem com cálculo de proporção (100g vs 1g)
@@ -100,6 +101,12 @@ myMeal/
   1. `SharedPreferences` (chave cadastrada pelo usuário na tela de Ajustes);
   2. Arquivo `.env` local (`dotenv.env['GEMINI_API_KEY']`);
   3. Parâmetro `--dart-define=GEMINI_API_KEY=xxx`.
+
+### 4.5. Backup, Exportação e Importação de Dados
+* **Formato JSON (Lossless)**: Utilizado para backup integral de segurança (`foods`, `meal_logs` e `daily_goals`). Não altera IDs e utiliza `ConflictAlgorithm.replace` ao restaurar para evitar duplicações.
+* **Formato CSV (Excel/Sheets)**:
+  - Todas as exportações para planilhas devem conter o cabeçalho com delimitador `;` e o marcador BOM UTF-8 (`\uFEFF`) para evitar problemas de caracteres e acentos no Microsoft Excel em português brasileiro.
+  - A importação CSV aceita separadores `;` ou `,` e faz a leitura resiliente de números decimais com vírgula ou ponto.
 
 ---
 
