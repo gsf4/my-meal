@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_meal/core/constants/app_constants.dart';
+import 'package:my_meal/core/services/gemini_voice_service.dart';
 import 'package:my_meal/core/theme/app_theme.dart';
 import 'package:my_meal/features/foods/providers/food_providers.dart';
 import 'package:my_meal/features/meals/providers/meal_providers.dart';
@@ -24,6 +25,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _obscureApiKey = true;
   bool _isInitialized = false;
   bool _isLoadingBackup = false;
+  bool _isTestingGemini = false;
 
   @override
   void dispose() {
@@ -74,6 +76,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final key = _apiKeyController.text.trim();
     await ref.read(geminiApiKeyProvider.notifier).updateApiKey(key);
 
+    if (key.isNotEmpty) {
+      try {
+        final voiceService = GeminiVoiceService();
+        final best = await voiceService.resolveBestModel(key, forceRefresh: true);
+        await ref.read(geminiModelProvider.notifier).updateModel(best);
+      } catch (_) {}
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -81,6 +91,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           backgroundColor: AppTheme.caloriesColor,
         ),
       );
+    }
+  }
+
+  Future<void> _testGeminiConnection() async {
+    final key = _apiKeyController.text.trim();
+    if (key.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Insira uma Chave de API antes de testar.'),
+          backgroundColor: AppTheme.dangerColor,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isTestingGemini = true);
+    try {
+      final voiceService = GeminiVoiceService();
+      final models = await voiceService.listAvailableModels(key);
+      if (models.isNotEmpty) {
+        final best = await voiceService.resolveBestModel(key, forceRefresh: true);
+        await ref.read(geminiModelProvider.notifier).updateModel(best);
+        await ref.read(geminiApiKeyProvider.notifier).updateApiKey(key);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Conexão OK! Modelo ativo: $best'),
+              backgroundColor: AppTheme.caloriesColor,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível listar modelos. Verifique se a chave está correta no Google AI Studio.'),
+              backgroundColor: AppTheme.dangerColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao testar chave: $e'),
+            backgroundColor: AppTheme.dangerColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isTestingGemini = false);
     }
   }
 
@@ -241,6 +304,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final goalAsync = ref.watch(dailyGoalProvider);
     final apiKeyAsync = ref.watch(geminiApiKeyProvider);
+    final geminiModel = ref.watch(geminiModelProvider).value ?? AppConstants.defaultGeminiModel;
 
     final goal = goalAsync.value ?? DailyGoal.defaultGoal();
     final apiKey = apiKeyAsync.value ?? '';
@@ -297,13 +361,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton.icon(
-                        onPressed: _saveApiKey,
-                        icon: const Icon(Icons.save),
-                        label: const Text('Salvar Chave'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white10),
                       ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 16, color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Modelo Ativo: ',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                          ),
+                          Expanded(
+                            child: Text(
+                              geminiModel,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.caloriesColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _isTestingGemini ? null : _testGeminiConnection,
+                          icon: _isTestingGemini
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.network_check, size: 18),
+                          label: const Text('Testar Conexão'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: _saveApiKey,
+                          icon: const Icon(Icons.save, size: 18),
+                          label: const Text('Salvar Chave'),
+                        ),
+                      ],
                     ),
                   ],
                 ),

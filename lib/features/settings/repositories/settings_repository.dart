@@ -36,6 +36,20 @@ class SettingsRepository {
     await prefs.setString(AppConstants.keyGeminiApiKey, apiKey.trim());
   }
 
+  Future<String> getGeminiModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedModel = prefs.getString(AppConstants.keyGeminiModel);
+    if (savedModel != null && savedModel.trim().isNotEmpty) {
+      return savedModel.trim();
+    }
+    return AppConstants.defaultGeminiModel;
+  }
+
+  Future<void> saveGeminiModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyGeminiModel, model.trim());
+  }
+
   Future<DailyGoal> getDailyGoal() async {
     final prefs = await SharedPreferences.getInstance();
     final calories = prefs.getDouble(AppConstants.keyDailyCalories) ?? AppConstants.defaultCalories;

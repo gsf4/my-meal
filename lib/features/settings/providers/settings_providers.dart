@@ -77,6 +77,34 @@ final geminiApiKeyProvider = StateNotifierProvider<GeminiApiKeyNotifier, AsyncVa
   return GeminiApiKeyNotifier(repo);
 });
 
+class GeminiModelNotifier extends StateNotifier<AsyncValue<String>> {
+  final SettingsRepository _repository;
+
+  GeminiModelNotifier(this._repository) : super(const AsyncValue.loading()) {
+    loadModel();
+  }
+
+  Future<void> loadModel() async {
+    state = const AsyncValue.loading();
+    try {
+      final model = await _repository.getGeminiModel();
+      state = AsyncValue.data(model);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> updateModel(String model) async {
+    await _repository.saveGeminiModel(model);
+    state = AsyncValue.data(model.trim());
+  }
+}
+
+final geminiModelProvider = StateNotifierProvider<GeminiModelNotifier, AsyncValue<String>>((ref) {
+  final repo = ref.watch(settingsRepositoryProvider);
+  return GeminiModelNotifier(repo);
+});
+
 class NutritionProgress {
   final DailyGoal goal;
   final ConsumedTotals consumed;

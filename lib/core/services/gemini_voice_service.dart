@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_meal/core/constants/app_constants.dart';
 import 'package:my_meal/features/foods/repositories/food_repository.dart';
 import 'package:my_meal/features/meals/models/meal_type.dart';
@@ -8,15 +10,102 @@ import 'package:my_meal/features/voice_logging/models/voice_meal_result.dart';
 
 class GeminiVoiceService {
   final FoodRepository _foodRepository;
+  final http.Client _httpClient;
 
-  GeminiVoiceService({FoodRepository? foodRepository})
-      : _foodRepository = foodRepository ?? FoodRepository();
+  GeminiVoiceService({
+    FoodRepository? foodRepository,
+    http.Client? httpClient,
+  })  : _foodRepository = foodRepository ?? FoodRepository(),
+        _httpClient = httpClient ?? http.Client();
+
+  /// Consulta a API do Google para listar todos os modelos suportados pela chave informada
+  Future<List<String>> listAvailableModels(String apiKey) async {
+    try {
+      final uri = Uri.https(
+        'generativelanguage.googleapis.com',
+        'v1beta/models',
+        {'key': apiKey.trim()},
+      );
+      final response = await _httpClient.get(uri);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final models = data['models'] as List<dynamic>? ?? [];
+        final List<String> supported = [];
+        for (final item in models) {
+          final m = item as Map<String, dynamic>;
+          final methods = (m['supportedGenerationMethods'] as List<dynamic>? ?? []);
+          if (methods.contains('generateContent')) {
+            var name = m['name'] as String? ?? '';
+            name = name.replaceFirst(RegExp(r'^models/'), '');
+            if (name.isNotEmpty) {
+              supported.add(name);
+            }
+          }
+        }
+        return supported;
+      }
+    } catch (_) {
+      // Ignora falhas de conexão para usar fallback local
+    }
+    return [];
+  }
+
+  /// Resolve o melhor modelo ativo disponível
+  Future<String> resolveBestModel(String apiKey, {bool forceRefresh = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!forceRefresh) {
+      final savedModel = prefs.getString(AppConstants.keyGeminiModel);
+      if (savedModel != null && savedModel.trim().isNotEmpty) {
+        return savedModel.trim();
+      }
+    }
+
+    final availableModels = await listAvailableModels(apiKey);
+    String selectedModel = AppConstants.defaultGeminiModel;
+
+    if (availableModels.isNotEmpty) {
+      // Prioridade 1: Modelos Flash 2.5
+      final flash25 = availableModels.firstWhere(
+        (m) => m.contains('flash') && m.contains('2.5'),
+        orElse: () => '',
+      );
+      if (flash25.isNotEmpty) {
+        selectedModel = flash25;
+      } else {
+        // Prioridade 2: Modelos Flash 2.0
+        final flash20 = availableModels.firstWhere(
+          (m) => m.contains('flash') && m.contains('2.0'),
+          orElse: () => '',
+        );
+        if (flash20.isNotEmpty) {
+          selectedModel = flash20;
+        } else {
+          // Prioridade 3: Qualquer variante Flash (ex: gemini-1.5-flash-latest, etc)
+          final anyFlash = availableModels.firstWhere(
+            (m) => m.contains('flash'),
+            orElse: () => '',
+          );
+          if (anyFlash.isNotEmpty) {
+            selectedModel = anyFlash;
+          } else {
+            // Prioridade 4: Primeiro modelo com generateContent
+            selectedModel = availableModels.first;
+          }
+        }
+      }
+      await prefs.setString(AppConstants.keyGeminiModel, selectedModel);
+    }
+
+    return selectedModel;
+  }
 
   Future<VoiceMealResult> processAudioMeal({
     required String audioPath,
     required String apiKey,
   }) async {
-    if (apiKey.trim().isEmpty) {
+    final cleanApiKey = apiKey.trim();
+    if (cleanApiKey.isEmpty) {
       throw Exception(
         'Chave da API do Gemini não configurada. '
         'Por favor, adicione sua chave nas Configurações do app ou no arquivo .env.',
@@ -29,15 +118,6 @@ class GeminiVoiceService {
     }
 
     final audioBytes = await audioFile.readAsBytes();
-
-    final model = GenerativeModel(
-      model: AppConstants.defaultGeminiModel,
-      apiKey: apiKey,
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      ),
-    );
 
     const promptText = '''
 Você é um assistente de nutrição em português do aplicativo My Meal.
@@ -71,11 +151,69 @@ Regras obrigatórias:
       ]),
     ];
 
-    final response = await model.generateContent(content);
-    final responseText = response.text;
+    Future<String> executeGenerationWith(String modelIdentifier) async {
+      final genModel = GenerativeModel(
+        model: modelIdentifier,
+        apiKey: cleanApiKey,
+        generationConfig: GenerationConfig(
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+        ),
+      );
 
-    if (responseText == null || responseText.trim().isEmpty) {
-      throw Exception('Nenhuma resposta retornada pela IA do Gemini.');
+      final response = await genModel.generateContent(content);
+      final text = response.text;
+      if (text == null || text.trim().isEmpty) {
+        throw Exception('Nenhuma resposta retornada pela IA do Gemini.');
+      }
+      return text;
+    }
+
+    var activeModel = await resolveBestModel(cleanApiKey);
+    String? responseText;
+
+    try {
+      responseText = await executeGenerationWith(activeModel);
+    } catch (e) {
+      final errLower = e.toString().toLowerCase();
+      final isModelError = errLower.contains('not found') ||
+          errLower.contains('not supported') ||
+          errLower.contains('404') ||
+          errLower.contains('is not found for api version');
+
+      if (isModelError) {
+        // Tenta redescobrir o modelo ativo consultando a API
+        final refreshedModel = await resolveBestModel(cleanApiKey, forceRefresh: true);
+        if (refreshedModel != activeModel) {
+          try {
+            activeModel = refreshedModel;
+            responseText = await executeGenerationWith(activeModel);
+          } catch (_) {
+            // Continua para a lista estática de fallback caso ainda falhe
+          }
+        }
+
+        // Se ainda não obteve resposta, itera pela lista de fallbacks conhecidos
+        if (responseText == null) {
+          for (final candidate in AppConstants.fallbackGeminiModels) {
+            if (candidate == activeModel) continue;
+            try {
+              responseText = await executeGenerationWith(candidate);
+              // Salva o modelo que funcionou para as próximas chamadas
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(AppConstants.keyGeminiModel, candidate);
+              break;
+            } catch (_) {
+              // Tenta o próximo candidato
+            }
+          }
+        }
+      }
+
+      // Se após todas as tentativas não obteve sucesso, relança a exceção original
+      if (responseText == null) {
+        rethrow;
+      }
     }
 
     return await _parseGeminiResponse(responseText);

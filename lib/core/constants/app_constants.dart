@@ -15,5 +15,12 @@ class AppConstants {
   static const double defaultFat = 65.0;
 
   // Modelo Gemini padrão
-  static const String defaultGeminiModel = 'gemini-1.5-flash';
+  static const String keyGeminiModel = 'gemini_model';
+  static const String defaultGeminiModel = 'gemini-2.5-flash';
+  static const List<String> fallbackGeminiModels = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash',
+  ];
 }

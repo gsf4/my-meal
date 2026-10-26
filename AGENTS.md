@@ -20,7 +20,7 @@ Este documento contém o contexto de arquitetura, padrões de projeto, convenç�
 | **Linguagem & Framework** | Dart 3.9+ / Flutter 3.35+ | Gerenciado via FVM (`C:\Users\gabri\fvm\versions\3.35.0\bin\flutter.bat`) |
 | **Gerenciamento de Estado** | `flutter_riverpod` | StateNotifier, Notifier e Providers imutáveis |
 | **Banco de Dados Local** | `sqflite` + `sqflite_common_ffi` | Suporte nativo para Android, iOS e Windows Desktop |
-| **Inteligência Artificial** | `google_generative_ai` | Gemini 1.5 Flash Multimodal (`gemini-1.5-flash`) |
+| **Inteligência Artificial** | `google_generative_ai` | Gemini Flash Multimodal (`gemini-2.5-flash` com detecção dinâmica e fallback) |
 | **Gravação de Áudio** | `record` | Formato `.m4a` / AAC em 44.1kHz / 128kbps |
 | **Persistência de Ajustes** | `shared_preferences` | Metas diárias e Chave de API do usuário |
 | **Internacionalização** | `intl` | Datas e números formatados em português brasileiro (`pt_BR`) |
@@ -90,7 +90,7 @@ myMeal/
   - Caso o usuário confirme a refeição sem preencher os macros, o alimento **deve ser criado automaticamente no banco local**, porém marcado com `isPendingNutrition = true`, exibindo um indicador visual no Dashboard e na lista de alimentos para que possa ser completado depois sem travar o fluxo.
 
 ### 4.3. Fluxo de Áudio & IA
-* **Multimodal Direto**: O áudio gravado em `.m4a` é enviado como `DataPart('audio/m4a', bytes)` diretamente ao Gemini 1.5 Flash.
+* **Multimodal Direto**: O áudio gravado em `.m4a` é enviado como `DataPart('audio/m4a', bytes)` diretamente ao Gemini Flash (com modelo ativo resolvido dinamicamente via `GeminiVoiceService`).
 * Não use serviços externos de Speech-to-Text se puder utilizar a entrada de áudio multimodal do Gemini, pois isso preserva nuances coloquiais e culinárias em português.
 * **Revisão Obrigatória**: O áudio nunca deve registrar a refeição silenciosamente; ele sempre abre o `VoiceReviewBottomSheet` para permitir que o usuário confira ou use o botão **"+ Falar mais"** para anexar novos itens à mesma refeição.
 
