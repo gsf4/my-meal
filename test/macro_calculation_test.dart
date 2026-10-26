@@ -39,6 +39,76 @@ void main() {
       expect(oil.calculateCalories(13), closeTo(114.92, 0.01));
       expect(oil.calculateFat(13), closeTo(13.0, 0.01));
     });
+
+    test('Calcula macros para base unit (ex: 2 ovos médios)', () {
+      final egg = FoodItem(
+        id: '3',
+        name: 'Ovo Médio',
+        unitType: FoodUnitType.unit,
+        calories: 70.0,
+        protein: 6.0,
+        carbs: 0.5,
+        fat: 5.0,
+      );
+
+      // 2 ovos
+      expect(egg.calculateCalories(2), 140.0);
+      expect(egg.calculateProtein(2), 12.0);
+      expect(egg.calculateCarbs(2), 1.0);
+      expect(egg.calculateFat(2), 10.0);
+      expect(egg.unitType.formatAmount(2), '2 un');
+      expect(egg.unitType.formatAmount(1), '1 un');
+    });
+
+    test('Calcula macros para base slice (ex: 2 fatias de pão)', () {
+      final bread = FoodItem(
+        id: '4',
+        name: 'Pão de Forma',
+        unitType: FoodUnitType.slice,
+        calories: 65.0,
+        protein: 2.3,
+        carbs: 12.5,
+        fat: 0.8,
+      );
+
+      // 2 fatias
+      expect(bread.calculateCalories(2), 130.0);
+      expect(bread.calculateProtein(2), 4.6);
+      expect(bread.calculateCarbs(2), 25.0);
+      expect(bread.calculateFat(2), 1.6);
+      expect(bread.unitType.formatAmount(1), '1 fatia');
+      expect(bread.unitType.formatAmount(2), '2 fatias');
+    });
+
+    test('Calcula macros para base per100ml (ex: 250ml de leite)', () {
+      final milk = FoodItem(
+        id: '5',
+        name: 'Leite Desnatado',
+        unitType: FoodUnitType.per100ml,
+        calories: 35.0,
+        protein: 3.4,
+        carbs: 4.9,
+        fat: 0.1,
+      );
+
+      // 250ml
+      expect(milk.calculateCalories(250), closeTo(87.5, 0.01));
+      expect(milk.calculateProtein(250), closeTo(8.5, 0.01));
+      expect(milk.calculateCarbs(250), closeTo(12.25, 0.01));
+      expect(milk.calculateFat(250), closeTo(0.25, 0.01));
+      expect(milk.unitType.formatAmount(250), '250ml');
+    });
+
+    test('FoodUnitType.fromString mapeia termos comuns corretamente', () {
+      expect(FoodUnitType.fromString('unidade'), FoodUnitType.unit);
+      expect(FoodUnitType.fromString('un'), FoodUnitType.unit);
+      expect(FoodUnitType.fromString('fatia'), FoodUnitType.slice);
+      expect(FoodUnitType.fromString('100ml'), FoodUnitType.per100ml);
+      expect(FoodUnitType.fromString('ml'), FoodUnitType.per1ml);
+      expect(FoodUnitType.fromString('colher'), FoodUnitType.tablespoon);
+      expect(FoodUnitType.fromString('scoop'), FoodUnitType.scoop);
+      expect(FoodUnitType.fromString('porcao'), FoodUnitType.portion);
+    });
   });
 
   group('MealLog and MealType', () {

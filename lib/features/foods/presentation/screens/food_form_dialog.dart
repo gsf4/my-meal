@@ -118,27 +118,25 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Base Nutricional:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              const SizedBox(height: 6),
-              SegmentedButton<FoodUnitType>(
-                segments: const [
-                  ButtonSegment(
-                    value: FoodUnitType.per100g,
-                    label: Text('Por 100g'),
-                  ),
-                  ButtonSegment(
-                    value: FoodUnitType.per1g,
-                    label: Text('Por 1g'),
-                  ),
-                ],
-                selected: {_unitType},
-                onSelectionChanged: (set) {
-                  setState(() {
-                    _unitType = set.first;
-                  });
+              DropdownButtonFormField<FoodUnitType>(
+                initialValue: _unitType,
+                decoration: const InputDecoration(
+                  labelText: 'Unidade de Medida / Base *',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                items: FoodUnitType.values.map((unit) {
+                  return DropdownMenuItem(
+                    value: unit,
+                    child: Text(unit.label),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _unitType = val;
+                    });
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -150,7 +148,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'Calorias (kcal)',
-                        helperText: _unitType == FoodUnitType.per100g ? 'em 100g' : 'em 1g',
+                        helperText: _unitType.helperDescription,
                         border: const OutlineInputBorder(),
                       ),
                     ),
@@ -162,7 +160,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'Proteínas (g)',
-                        helperText: _unitType == FoodUnitType.per100g ? 'em 100g' : 'em 1g',
+                        helperText: _unitType.helperDescription,
                         border: const OutlineInputBorder(),
                       ),
                     ),
@@ -178,7 +176,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'Carboidratos (g)',
-                        helperText: _unitType == FoodUnitType.per100g ? 'em 100g' : 'em 1g',
+                        helperText: _unitType.helperDescription,
                         border: const OutlineInputBorder(),
                       ),
                     ),
@@ -190,7 +188,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'Gorduras (g)',
-                        helperText: _unitType == FoodUnitType.per100g ? 'em 100g' : 'em 1g',
+                        helperText: _unitType.helperDescription,
                         border: const OutlineInputBorder(),
                       ),
                     ),

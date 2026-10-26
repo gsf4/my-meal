@@ -239,4 +239,69 @@ void main() {
     expect(find.text('Proteínas'), findsNothing);
     expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
   });
+
+  testWidgets('Exibe e edita alimento cadastrado por unidade (ex: 2 ovos médios -> 2 un)', (WidgetTester tester) async {
+    final egg = FoodItem(
+      id: 'egg-1',
+      name: 'Ovo Médio',
+      unitType: FoodUnitType.unit,
+      calories: 70,
+      protein: 6.0,
+      carbs: 0.5,
+      fat: 5.0,
+    );
+
+    final log = MealLog(
+      id: 'log-egg',
+      date: DateTime(2026, 10, 26),
+      mealType: MealType.breakfast,
+      foodId: egg.id,
+      consumedAmount: 2,
+      food: egg,
+    );
+
+    final notifier = TestMealNotifier();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealLogsProvider.overrideWith((ref) => notifier),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MealSectionCard(
+              mealType: MealType.breakfast,
+              logs: [log],
+              selectedDate: DateTime(2026, 10, 26),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Deve exibir "2 un" e 140 kcal (2 * 70)
+    expect(find.text('Ovo Médio'), findsOneWidget);
+    expect(find.text('2 un'), findsOneWidget);
+    expect(find.text('140 kcal'), findsWidgets);
+
+    // Toca para editar
+    await tester.tap(find.text('Ovo Médio'));
+    await tester.pumpAndSettle();
+
+    // Diálogo com suffix un
+    expect(find.text('Editar Quantidade'), findsOneWidget);
+    expect(find.text('un'), findsOneWidget);
+
+    // Altera para 3 ovos
+    await tester.enterText(find.byType(TextField), '3');
+    await tester.pumpAndSettle();
+
+    // Clica em Salvar
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.updateAmountCalled, isTrue);
+    expect(notifier.updatedId, 'log-egg');
+    expect(notifier.updatedAmount, 3.0);
+  });
 }

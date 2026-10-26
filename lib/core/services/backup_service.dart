@@ -155,7 +155,7 @@ class BackupService {
     buffer.write('\uFEFF');
 
     // Cabeçalho compatível com Excel (delimitador ponto e vírgula)
-    buffer.writeln('Data;Refeição;Alimento;Quantidade (g);Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g)');
+    buffer.writeln('Data;Refeição;Alimento;Quantidade;Unidade;Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g)');
 
     final dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -163,13 +163,16 @@ class BackupService {
       final dateStr = dateFormat.format(log.date);
       final mealStr = log.mealType.label;
       final foodName = (log.food?.name ?? 'Desconhecido').replaceAll(';', ',');
-      final grams = log.consumedAmount.toStringAsFixed(1);
+      final amount = log.consumedAmount % 1 == 0 
+          ? log.consumedAmount.toInt().toString() 
+          : log.consumedAmount.toStringAsFixed(1);
+      final unit = log.food?.unitType.unitSuffix ?? 'g';
       final cal = log.calories.toStringAsFixed(1);
       final prot = log.protein.toStringAsFixed(1);
       final carbs = log.carbs.toStringAsFixed(1);
       final fat = log.fat.toStringAsFixed(1);
 
-      buffer.writeln('$dateStr;$mealStr;$foodName;$grams;$cal;$prot;$carbs;$fat');
+      buffer.writeln('$dateStr;$mealStr;$foodName;$amount;$unit;$cal;$prot;$carbs;$fat');
     }
 
     final tempDir = await getTemporaryDirectory();
@@ -263,10 +266,7 @@ class BackupService {
         double fat = 0.0;
 
         if (parts.length > 1) {
-          final unitCandidate = parts[1].toLowerCase();
-          if (unitCandidate.contains('1g')) {
-            unitTypeStr = 'per1g';
-          }
+          unitTypeStr = parts[1].trim();
         }
 
         if (parts.length > 2) cal = double.tryParse(parts[2].trim().replaceAll(',', '.')) ?? 0.0;

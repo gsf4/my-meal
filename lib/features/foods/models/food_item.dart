@@ -1,13 +1,87 @@
 enum FoodUnitType {
-  per100g('Por 100g'),
-  per1g('Por 1g');
+  per100g('Por 100g', 'g', 'em 100g'),
+  per1g('Por 1g', 'g', 'em 1g'),
+  per100ml('Por 100ml', 'ml', 'em 100ml'),
+  per1ml('Por 1ml', 'ml', 'em 1ml'),
+  unit('Por unidade', 'un', 'em 1 unidade'),
+  slice('Por fatia', 'fatia', 'em 1 fatia'),
+  tablespoon('Por colher de sopa', 'colher', 'em 1 colher'),
+  teaspoon('Por colher de chá', 'colher (chá)', 'em 1 colher de chá'),
+  scoop('Por dosador (scoop)', 'scoop', 'em 1 scoop'),
+  portion('Por porção', 'porção', 'em 1 porção');
 
   final String label;
-  const FoodUnitType(this.label);
+  final String unitSuffix;
+  final String helperDescription;
+
+  const FoodUnitType(this.label, this.unitSuffix, this.helperDescription);
+
+  bool get isBase100 => this == FoodUnitType.per100g || this == FoodUnitType.per100ml;
+
+  String formatAmount(double amount) {
+    final numStr = amount % 1 == 0 ? amount.toInt().toString() : amount.toStringAsFixed(1);
+    switch (this) {
+      case FoodUnitType.per100g:
+      case FoodUnitType.per1g:
+        return '${numStr}g';
+      case FoodUnitType.per100ml:
+      case FoodUnitType.per1ml:
+        return '${numStr}ml';
+      case FoodUnitType.unit:
+        return '$numStr un';
+      case FoodUnitType.slice:
+        return amount == 1 ? '1 fatia' : '$numStr fatias';
+      case FoodUnitType.portion:
+        return amount == 1 ? '1 porção' : '$numStr porções';
+      case FoodUnitType.tablespoon:
+        return amount == 1 ? '1 colher' : '$numStr colheres';
+      case FoodUnitType.teaspoon:
+        return amount == 1 ? '1 colher (chá)' : '$numStr colheres (chá)';
+      case FoodUnitType.scoop:
+        return amount == 1 ? '1 scoop' : '$numStr scoops';
+    }
+  }
 
   static FoodUnitType fromString(String value) {
-    if (value == 'per1g') return FoodUnitType.per1g;
-    return FoodUnitType.per100g;
+    final clean = value.trim().toLowerCase();
+    switch (clean) {
+      case 'per1g':
+      case '1g':
+        return FoodUnitType.per1g;
+      case 'per100ml':
+      case '100ml':
+        return FoodUnitType.per100ml;
+      case 'per1ml':
+      case '1ml':
+      case 'ml':
+        return FoodUnitType.per1ml;
+      case 'unit':
+      case 'unidade':
+      case 'un':
+        return FoodUnitType.unit;
+      case 'slice':
+      case 'fatia':
+        return FoodUnitType.slice;
+      case 'tablespoon':
+      case 'colher':
+      case 'colher de sopa':
+        return FoodUnitType.tablespoon;
+      case 'teaspoon':
+      case 'colher de cha':
+      case 'colher de chá':
+        return FoodUnitType.teaspoon;
+      case 'scoop':
+      case 'dosador':
+        return FoodUnitType.scoop;
+      case 'portion':
+      case 'porcao':
+      case 'porção':
+        return FoodUnitType.portion;
+      case 'per100g':
+      case '100g':
+      default:
+        return FoodUnitType.per100g;
+    }
   }
 }
 
@@ -34,23 +108,23 @@ class FoodItem {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  double calculateCalories(double grams) {
-    final factor = unitType == FoodUnitType.per100g ? (grams / 100.0) : grams;
+  double calculateCalories(double amount) {
+    final factor = unitType.isBase100 ? (amount / 100.0) : amount;
     return calories * factor;
   }
 
-  double calculateProtein(double grams) {
-    final factor = unitType == FoodUnitType.per100g ? (grams / 100.0) : grams;
+  double calculateProtein(double amount) {
+    final factor = unitType.isBase100 ? (amount / 100.0) : amount;
     return protein * factor;
   }
 
-  double calculateCarbs(double grams) {
-    final factor = unitType == FoodUnitType.per100g ? (grams / 100.0) : grams;
+  double calculateCarbs(double amount) {
+    final factor = unitType.isBase100 ? (amount / 100.0) : amount;
     return carbs * factor;
   }
 
-  double calculateFat(double grams) {
-    final factor = unitType == FoodUnitType.per100g ? (grams / 100.0) : grams;
+  double calculateFat(double amount) {
+    final factor = unitType.isBase100 ? (amount / 100.0) : amount;
     return fat * factor;
   }
 

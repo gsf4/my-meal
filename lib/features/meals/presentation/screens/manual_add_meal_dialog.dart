@@ -214,7 +214,7 @@ class _ManualAddMealDialogState extends ConsumerState<ManualAddMealDialog> {
                           return ListTile(
                             dense: true,
                             title: Text(food.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                            subtitle: Text('${food.calories.toStringAsFixed(0)} kcal / 100g'),
+                            subtitle: Text('${food.calories.toStringAsFixed(0)} kcal (${food.unitType.label})'),
                             trailing: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
                             onTap: () {
                               setState(() {
@@ -231,14 +231,19 @@ class _ManualAddMealDialogState extends ConsumerState<ManualAddMealDialog> {
                 ),
               ],
               const SizedBox(height: 12),
-              // Quantidade consumida em gramas
+              // Quantidade consumida com suporte dinâmico à unidade
               TextField(
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Quantidade consumida (gramas)',
-                  suffixText: 'g',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: _selectedFood != null 
+                      ? 'Quantidade consumida (${_selectedFood!.unitType.label})'
+                      : 'Quantidade consumida',
+                  suffixText: _selectedFood?.unitType.unitSuffix ?? 'g',
+                  hintText: _selectedFood?.unitType == FoodUnitType.unit || _selectedFood?.unitType == FoodUnitType.slice
+                      ? 'Ex: 2'
+                      : 'Ex: 100',
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),

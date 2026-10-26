@@ -135,10 +135,12 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Gramas',
-            suffixText: 'g',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: item.matchedFood != null 
+                ? 'Quantidade (${item.matchedFood!.unitType.label})'
+                : 'Quantidade',
+            suffixText: item.matchedFood?.unitType.unitSuffix ?? 'g',
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -385,7 +387,7 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                                       child: Row(
                                         children: [
                                           Text(
-                                            '${item.grams.toStringAsFixed(0)}g',
+                                            item.matchedFood?.unitType.formatAmount(item.grams) ?? '${item.grams.toStringAsFixed(0)}g',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: Colors.black87,

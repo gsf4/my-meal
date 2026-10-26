@@ -96,10 +96,10 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                       controller: textController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantidade',
-                        suffixText: 'g',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: food != null ? 'Quantidade (${food.unitType.label})' : 'Quantidade',
+                        suffixText: food?.unitType.unitSuffix ?? 'g',
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         final parsed = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
@@ -166,9 +166,10 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                       Navigator.of(ctx).pop();
                       await ref.read(mealLogsProvider.notifier).updateConsumedAmount(log.id, newAmount);
                       if (context.mounted) {
+                        final formattedNewAmount = food?.unitType.formatAmount(newAmount) ?? '${newAmount.toStringAsFixed(0)}g';
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Quantidade de "${food?.name ?? 'alimento'}" alterada para ${newAmount.toStringAsFixed(0)}g.'),
+                            content: Text('Quantidade de "${food?.name ?? 'alimento'}" alterada para $formattedNewAmount.'),
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -187,7 +188,7 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
 
   Future<void> _confirmDeleteLog(BuildContext context, MealLog log) async {
     final foodName = log.food?.name ?? 'este alimento';
-    final amountText = '${log.consumedAmount.toStringAsFixed(0)}g';
+    final amountText = log.food?.unitType.formatAmount(log.consumedAmount) ?? '${log.consumedAmount.toStringAsFixed(0)}g';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -359,7 +360,7 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                                 Row(
                                   children: [
                                     Text(
-                                      '${log.consumedAmount.toStringAsFixed(0)}g',
+                                      log.food?.unitType.formatAmount(log.consumedAmount) ?? '${log.consumedAmount.toStringAsFixed(0)}g',
                                       style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                     ),
                                     const SizedBox(width: 4),
