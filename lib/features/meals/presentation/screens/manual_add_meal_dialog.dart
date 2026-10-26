@@ -119,7 +119,7 @@ class _ManualAddMealDialogState extends ConsumerState<ManualAddMealDialog> {
                       children: [
                         Icon(type.icon, size: 20, color: AppTheme.primaryColor),
                         const SizedBox(width: 8),
-                        Text(type.label),
+                        Text(type.detailedLabel),
                       ],
                     ),
                   );

@@ -26,9 +26,10 @@ class MealLog {
   double get fat => food?.calculateFat(consumedAmount) ?? 0.0;
 
   Map<String, dynamic> toMap() {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return {
       'id': id,
-      'date': DateTime(date.year, date.month, date.day).toIso8601String(),
+      'date': dateStr,
       'meal_type': mealType.name,
       'food_id': foodId,
       'consumed_amount': consumedAmount,
@@ -37,9 +38,17 @@ class MealLog {
   }
 
   factory MealLog.fromMap(Map<String, dynamic> map, {FoodItem? food}) {
+    DateTime parsedDate;
+    final rawDate = map['date'] as String;
+    try {
+      parsedDate = DateTime.parse(rawDate);
+    } catch (_) {
+      parsedDate = DateTime.now();
+    }
+
     return MealLog(
       id: map['id'] as String,
-      date: DateTime.parse(map['date'] as String),
+      date: DateTime(parsedDate.year, parsedDate.month, parsedDate.day),
       mealType: MealType.fromString(map['meal_type'] as String),
       foodId: map['food_id'] as String,
       consumedAmount: (map['consumed_amount'] as num).toDouble(),

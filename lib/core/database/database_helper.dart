@@ -11,6 +11,16 @@ class DatabaseHelper {
 
   DatabaseHelper._init();
 
+  @visibleForTesting
+  static void setDatabaseForTesting(Database? db) {
+    _database = db;
+  }
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _database = null;
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB('my_meal.db');
@@ -26,8 +36,13 @@ class DatabaseHelper {
 
     String path;
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      final docDir = await getApplicationDocumentsDirectory();
-      path = join(docDir.path, filePath);
+      try {
+        final docDir = await getApplicationDocumentsDirectory();
+        path = join(docDir.path, filePath);
+      } catch (_) {
+        // Fallback em ambiente headless de testes sem MethodChannel nativo
+        path = inMemoryDatabasePath;
+      }
     } else {
       final dbPath = await getDatabasesPath();
       path = join(dbPath, filePath);

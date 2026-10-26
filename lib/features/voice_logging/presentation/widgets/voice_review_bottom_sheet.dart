@@ -219,7 +219,7 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${logsToInsert.length} alimento(s) registrado(s) em ${_mealType.label}!'),
+          content: Text('${logsToInsert.length} alimento(s) registrado(s) em ${_mealType.detailedLabel}!'),
           backgroundColor: AppTheme.caloriesColor,
         ),
       );
@@ -305,7 +305,7 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                           children: [
                             Icon(type.icon, size: 18, color: AppTheme.primaryColor),
                             const SizedBox(width: 8),
-                            Text(type.label),
+                            Text(type.detailedLabel),
                           ],
                         ),
                       );

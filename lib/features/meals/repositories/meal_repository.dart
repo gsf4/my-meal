@@ -20,6 +20,11 @@ class MealRepository {
     final db = await _dbHelper.database;
     final formattedDate = _formatDate(date);
 
+    // Normaliza registros legados no SQLite que possam ter sido gravados com timestamp completo
+    try {
+      await db.rawUpdate('UPDATE meal_logs SET date = substr(date, 1, 10) WHERE length(date) > 10');
+    } catch (_) {}
+
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
       SELECT 
         ml.id AS ml_id,
@@ -39,9 +44,9 @@ class MealRepository {
         f.created_at AS f_created_at
       FROM meal_logs ml
       LEFT JOIN foods f ON ml.food_id = f.id
-      WHERE ml.date = ?
+      WHERE (ml.date = ? OR ml.date LIKE ? OR substr(ml.date, 1, 10) = ?)
       ORDER BY ml.created_at ASC
-    ''', [formattedDate]);
+    ''', [formattedDate, '$formattedDate%', formattedDate]);
 
     return maps.map((row) {
       FoodItem? food;
