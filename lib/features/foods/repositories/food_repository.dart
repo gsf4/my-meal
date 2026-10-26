@@ -1,3 +1,4 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:my_meal/core/database/database_helper.dart';
 import 'package:my_meal/features/foods/models/food_item.dart';
 
@@ -42,7 +43,16 @@ class FoodRepository {
 
   Future<void> insertFood(FoodItem food) async {
     final db = await _dbHelper.database;
-    await db.insert('foods', food.toMap());
+    await db.insert('foods', food.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> insertFoods(List<FoodItem> foods) async {
+    final db = await _dbHelper.database;
+    final batch = db.batch();
+    for (final food in foods) {
+      batch.insert('foods', food.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<void> updateFood(FoodItem food) async {

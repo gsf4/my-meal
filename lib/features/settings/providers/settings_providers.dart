@@ -1,11 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:my_meal/core/services/backup_service.dart';
+import 'package:my_meal/features/foods/providers/food_providers.dart';
 import 'package:my_meal/features/meals/providers/meal_providers.dart';
 import 'package:my_meal/features/settings/models/daily_goal.dart';
 import 'package:my_meal/features/settings/repositories/settings_repository.dart';
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   return SettingsRepository();
+});
+
+final backupServiceProvider = Provider<BackupService>((ref) {
+  final foodRepo = ref.watch(foodRepositoryProvider);
+  final mealRepo = ref.watch(mealRepositoryProvider);
+  final settingsRepo = ref.watch(settingsRepositoryProvider);
+  return BackupService(
+    foodRepository: foodRepo,
+    mealRepository: mealRepo,
+    settingsRepository: settingsRepo,
+  );
 });
 
 class DailyGoalNotifier extends StateNotifier<AsyncValue<DailyGoal>> {

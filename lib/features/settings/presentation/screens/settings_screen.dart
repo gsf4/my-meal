@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_meal/core/constants/app_constants.dart';
 import 'package:my_meal/core/theme/app_theme.dart';
+import 'package:my_meal/features/foods/providers/food_providers.dart';
+import 'package:my_meal/features/meals/providers/meal_providers.dart';
 import 'package:my_meal/features/settings/models/daily_goal.dart';
 import 'package:my_meal/features/settings/providers/settings_providers.dart';
 
@@ -21,6 +23,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   bool _obscureApiKey = true;
   bool _isInitialized = false;
+  bool _isLoadingBackup = false;
 
   @override
   void dispose() {
@@ -89,6 +92,149 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _fatController.text = AppConstants.defaultFat.toStringAsFixed(0);
     });
     _saveGoals();
+  }
+
+  Future<void> _exportFullBackup() async {
+    setState(() => _isLoadingBackup = true);
+    try {
+      final path = await ref.read(backupServiceProvider).exportFullBackupJson();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup exportado com sucesso: ${path.split(RegExp(r'[/\\]')).last}'),
+            backgroundColor: AppTheme.caloriesColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao exportar backup: $e'), backgroundColor: AppTheme.dangerColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBackup = false);
+    }
+  }
+
+  Future<void> _restoreFullBackup() async {
+    setState(() => _isLoadingBackup = true);
+    try {
+      final result = await ref.read(backupServiceProvider).pickAndImportJsonBackup();
+      if (result != null) {
+        // Atualizar estado reativo dos alimentos, logs e metas
+        await ref.read(foodListProvider.notifier).loadFoods();
+        await ref.read(mealLogsProvider.notifier).loadLogs();
+        await ref.read(dailyGoalProvider.notifier).loadGoal();
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: AppTheme.caloriesColor),
+                  SizedBox(width: 8),
+                  Text('Backup Restaurado'),
+                ],
+              ),
+              content: Text(
+                'Sucesso! Foram restaurados:\n\n'
+                '• ${result.foodsCount} alimentos no catálogo\n'
+                '• ${result.mealLogsCount} registros de refeições\n'
+                '${result.goalsUpdated ? '• Metas diárias atualizadas\n' : ''}',
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Falha ao restaurar backup: $e'), backgroundColor: AppTheme.dangerColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBackup = false);
+    }
+  }
+
+  Future<void> _exportMealsCsv() async {
+    setState(() => _isLoadingBackup = true);
+    try {
+      final path = await ref.read(backupServiceProvider).exportMealsCsv();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Planilha de refeições pronta: ${path.split(RegExp(r'[/\\]')).last}'),
+            backgroundColor: AppTheme.caloriesColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao exportar planilha: $e'), backgroundColor: AppTheme.dangerColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBackup = false);
+    }
+  }
+
+  Future<void> _exportFoodsCsv() async {
+    setState(() => _isLoadingBackup = true);
+    try {
+      final path = await ref.read(backupServiceProvider).exportFoodsCsv();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Planilha de alimentos pronta: ${path.split(RegExp(r'[/\\]')).last}'),
+            backgroundColor: AppTheme.caloriesColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao exportar alimentos: $e'), backgroundColor: AppTheme.dangerColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBackup = false);
+    }
+  }
+
+  Future<void> _importFoodsCsv() async {
+    setState(() => _isLoadingBackup = true);
+    try {
+      final count = await ref.read(backupServiceProvider).pickAndImportFoodsCsv();
+      if (count > 0) {
+        await ref.read(foodListProvider.notifier).loadFoods();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$count alimentos importados com sucesso!'),
+              backgroundColor: AppTheme.caloriesColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Falha ao importar planilha: $e'), backgroundColor: AppTheme.dangerColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingBackup = false);
+    }
   }
 
   @override
@@ -175,7 +321,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Row(
                       children: [
                         const Icon(Icons.track_changes, color: AppTheme.primaryColor),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         const Text(
                           'Metas Diárias',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -248,6 +394,125 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         label: const Text('Salvar Metas'),
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Nova Seção: Backup & Exportação de Dados
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.backup_outlined, color: AppTheme.primaryColor),
+                        SizedBox(width: 8),
+                        Text(
+                          'Backup e Exportação de Dados',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Como seus dados ficam salvos apenas neste aparelho, use as opções abaixo para fazer backup de segurança ou visualizar suas refeições no Excel / Google Sheets.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (_isLoadingBackup)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else ...[
+                      // Backup Completo (JSON)
+                      const Text(
+                        'Backup do Aplicativo (Completo)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _exportFullBackup,
+                              icon: const Icon(Icons.cloud_upload_outlined),
+                              label: const Text('Exportar Backup'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _restoreFullBackup,
+                              icon: const Icon(Icons.cloud_download_outlined),
+                              label: const Text('Restaurar Backup'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Planilhas Excel / CSV
+                      const Text(
+                        'Visualização em Planilhas (Excel / Sheets)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.caloriesColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.table_chart_outlined, color: AppTheme.caloriesColor),
+                        ),
+                        title: const Text('Exportar Histórico de Refeições (CSV)'),
+                        subtitle: const Text('Gera planilha com data, refeição, gramas, calorias e macros.'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _exportMealsCsv,
+                      ),
+                      const Divider(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.carbsColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.restaurant_menu_outlined, color: AppTheme.carbsColor),
+                        ),
+                        title: const Text('Exportar Catálogo de Alimentos (CSV)'),
+                        subtitle: const Text('Gera planilha com todos os alimentos e valores por 100g.'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _exportFoodsCsv,
+                      ),
+                      const Divider(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.file_upload_outlined, color: AppTheme.primaryColor),
+                        ),
+                        title: const Text('Importar Alimentos por Planilha (CSV)'),
+                        subtitle: const Text('Adiciona novos alimentos em lote a partir de um arquivo CSV.'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _importFoodsCsv,
+                      ),
+                    ],
                   ],
                 ),
               ),
