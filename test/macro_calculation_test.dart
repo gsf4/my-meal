@@ -88,6 +88,12 @@ void main() {
 
       final dinnerTime = DateTime(2026, 1, 1, 20, 15);
       expect(MealType.fromCurrentTime(dinnerTime), MealType.dinner);
+
+      final nightSnackTime = DateTime(2026, 1, 1, 23, 0);
+      expect(MealType.fromCurrentTime(nightSnackTime), MealType.nightSnack);
+
+      expect(MealType.fromString('ceia'), MealType.nightSnack);
+      expect(MealType.fromString('lanche da noite'), MealType.nightSnack);
     });
   });
 

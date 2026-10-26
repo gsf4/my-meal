@@ -45,7 +45,7 @@ Analise com atenção a fala do usuário no áudio fornecido e extraia todos os 
 
 Retorne estritamente um JSON no seguinte formato:
 {
-  "meal_type": "breakfast" | "lunch" | "dinner" | "snack",
+  "meal_type": "breakfast" | "lunch" | "snack" | "dinner" | "night_snack",
   "items": [
     {
       "spoken_name": "Nome comum do alimento em português",

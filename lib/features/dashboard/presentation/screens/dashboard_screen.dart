@@ -127,10 +127,7 @@ class DashboardScreen extends ConsumerWidget {
             logsAsync.when(
               data: (logs) {
                 final Map<MealType, List<MealLog>> grouped = {
-                  MealType.breakfast: [],
-                  MealType.lunch: [],
-                  MealType.dinner: [],
-                  MealType.snack: [],
+                  for (final type in MealType.values) type: <MealLog>[],
                 };
 
                 for (final log in logs) {

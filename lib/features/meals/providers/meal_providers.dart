@@ -85,6 +85,24 @@ class MealLogsNotifier extends StateNotifier<AsyncValue<List<MealLog>>> {
     await _repository.deleteMealLog(id);
     await loadLogs();
   }
+
+  Future<int> cloneMeal({
+    required DateTime sourceDate,
+    required MealType sourceMealType,
+    required DateTime targetDate,
+    required MealType targetMealType,
+  }) async {
+    final count = await _repository.copyMealLogs(
+      sourceDate: sourceDate,
+      sourceMealType: sourceMealType,
+      targetDate: targetDate,
+      targetMealType: targetMealType,
+    );
+    if (count > 0) {
+      await loadLogs();
+    }
+    return count;
+  }
 }
 
 final mealLogsProvider = StateNotifierProvider<MealLogsNotifier, AsyncValue<List<MealLog>>>((ref) {

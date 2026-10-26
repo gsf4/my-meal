@@ -1,0 +1,207 @@
+{
+  "app": "My Meal",
+  "version": 1,
+  "exported_at": "2026-10-26T13:00:00.000Z",
+  "goals": {
+    "calories": 2200.0,
+    "protein": 160.0,
+    "carbs": 220.0,
+    "fat": 65.0
+  },
+  "foods": [
+    {
+      "id": "food-arroz-cru",
+      "name": "Arroz Branco (Cru)",
+      "unit_type": "per100g",
+      "calories": 358.0,
+      "protein": 7.2,
+      "carbs": 78.8,
+      "fat": 0.4,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-frango-cru",
+      "name": "Peito de Frango (Cru)",
+      "unit_type": "per100g",
+      "calories": 119.0,
+      "protein": 23.0,
+      "carbs": 0.0,
+      "fat": 2.6,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-pao-plus-vita",
+      "name": "Pão de Forma Plus Vita",
+      "unit_type": "per100g",
+      "calories": 246.0,
+      "protein": 9.0,
+      "carbs": 46.0,
+      "fat": 2.4,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-ovo-inteiro",
+      "name": "Ovo de Galinha Inteiro",
+      "unit_type": "per100g",
+      "calories": 143.0,
+      "protein": 13.0,
+      "carbs": 0.8,
+      "fat": 9.5,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-requeijao-light",
+      "name": "Requeijão Cremoso Light",
+      "unit_type": "per100g",
+      "calories": 166.0,
+      "protein": 10.0,
+      "carbs": 3.5,
+      "fat": 12.0,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-whey-growth-chocolate",
+      "name": "100% Whey Concentrado Growth (Chocolate 70%)",
+      "unit_type": "per100g",
+      "calories": 407.0,
+      "protein": 70.0,
+      "carbs": 16.0,
+      "fat": 7.0,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-doce-de-leite",
+      "name": "Doce de Leite Tradicional",
+      "unit_type": "per100g",
+      "calories": 315.0,
+      "protein": 6.0,
+      "carbs": 56.0,
+      "fat": 7.5,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    },
+    {
+      "id": "food-leite-zero-lactose",
+      "name": "Leite Semidesnatado Zero Lactose",
+      "unit_type": "per100g",
+      "calories": 45.0,
+      "protein": 3.1,
+      "carbs": 4.7,
+      "fat": 1.5,
+      "is_pending_nutrition": 0,
+      "created_at": "2026-10-26T13:00:00.000Z"
+    }
+  ],
+  "meal_logs": [
+    {
+      "id": "log-breakfast-1",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "breakfast",
+      "food_id": "food-pao-plus-vita",
+      "consumed_amount": 50.0,
+      "created_at": "2026-10-26T08:00:00.000Z"
+    },
+    {
+      "id": "log-breakfast-2",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "breakfast",
+      "food_id": "food-ovo-inteiro",
+      "consumed_amount": 150.0,
+      "created_at": "2026-10-26T08:05:00.000Z"
+    },
+    {
+      "id": "log-breakfast-3",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "breakfast",
+      "food_id": "food-requeijao-light",
+      "consumed_amount": 30.0,
+      "created_at": "2026-10-26T08:10:00.000Z"
+    },
+    {
+      "id": "log-lunch-1",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "lunch",
+      "food_id": "food-arroz-cru",
+      "consumed_amount": 80.0,
+      "created_at": "2026-10-26T12:30:00.000Z"
+    },
+    {
+      "id": "log-lunch-2",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "lunch",
+      "food_id": "food-frango-cru",
+      "consumed_amount": 160.0,
+      "created_at": "2026-10-26T12:35:00.000Z"
+    },
+    {
+      "id": "log-snack-1",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "snack",
+      "food_id": "food-whey-growth-chocolate",
+      "consumed_amount": 30.0,
+      "created_at": "2026-10-26T16:30:00.000Z"
+    },
+    {
+      "id": "log-snack-2",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "snack",
+      "food_id": "food-leite-zero-lactose",
+      "consumed_amount": 200.0,
+      "created_at": "2026-10-26T16:35:00.000Z"
+    },
+    {
+      "id": "log-snack-3",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "snack",
+      "food_id": "food-doce-de-leite",
+      "consumed_amount": 25.0,
+      "created_at": "2026-10-26T16:40:00.000Z"
+    },
+    {
+      "id": "log-dinner-1",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "dinner",
+      "food_id": "food-arroz-cru",
+      "consumed_amount": 80.0,
+      "created_at": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "log-dinner-2",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "dinner",
+      "food_id": "food-frango-cru",
+      "consumed_amount": 160.0,
+      "created_at": "2026-10-26T20:05:00.000Z"
+    },
+    {
+      "id": "log-dinner-3",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "dinner",
+      "food_id": "food-ovo-inteiro",
+      "consumed_amount": 50.0,
+      "created_at": "2026-10-26T20:10:00.000Z"
+    },
+    {
+      "id": "log-night-snack-1",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "nightSnack",
+      "food_id": "food-pao-plus-vita",
+      "consumed_amount": 25.0,
+      "created_at": "2026-10-26T22:30:00.000Z"
+    },
+    {
+      "id": "log-night-snack-2",
+      "date": "2026-10-26T00:00:00.000Z",
+      "meal_type": "nightSnack",
+      "food_id": "food-requeijao-light",
+      "consumed_amount": 20.0,
+      "created_at": "2026-10-26T22:35:00.000Z"
+    }
+  ]
+}

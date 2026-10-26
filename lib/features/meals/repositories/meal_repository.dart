@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import 'package:my_meal/core/database/database_helper.dart';
 import 'package:my_meal/features/foods/models/food_item.dart';
 import 'package:my_meal/features/meals/models/meal_log.dart';
@@ -158,5 +159,39 @@ class MealRepository {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Clona os alimentos de uma refeição para outra data e refeição
+  Future<int> copyMealLogs({
+    required DateTime sourceDate,
+    required MealType sourceMealType,
+    required DateTime targetDate,
+    required MealType targetMealType,
+  }) async {
+    final sourceLogs = await getMealLogsByDate(sourceDate);
+    final itemsToCopy = sourceLogs.where((l) => l.mealType == sourceMealType).toList();
+
+    if (itemsToCopy.isEmpty) return 0;
+
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final List<MealLog> newLogs = [];
+
+    for (final item in itemsToCopy) {
+      newLogs.add(
+        MealLog(
+          id: uuid.v4(),
+          date: targetDate,
+          mealType: targetMealType,
+          foodId: item.foodId,
+          consumedAmount: item.consumedAmount,
+          createdAt: now,
+          food: item.food,
+        ),
+      );
+    }
+
+    await insertMealLogs(newLogs);
+    return newLogs.length;
   }
 }
