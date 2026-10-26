@@ -56,7 +56,11 @@ class GeminiVoiceService {
 
     if (!forceRefresh) {
       final savedModel = prefs.getString(AppConstants.keyGeminiModel);
-      if (savedModel != null && savedModel.trim().isNotEmpty) {
+      if (savedModel != null &&
+          savedModel.trim().isNotEmpty &&
+          savedModel != 'gemini-1.5-flash' &&
+          savedModel != 'gemini-2.5-flash' &&
+          savedModel != 'gemini-2.0-flash') {
         return savedModel.trim();
       }
     }
@@ -65,23 +69,23 @@ class GeminiVoiceService {
     String selectedModel = AppConstants.defaultGeminiModel;
 
     if (availableModels.isNotEmpty) {
-      // Prioridade 1: Modelos Flash 2.5
-      final flash25 = availableModels.firstWhere(
-        (m) => m.contains('flash') && m.contains('2.5'),
+      // Prioridade 1: Modelos Flash 3.8
+      final flash38 = availableModels.firstWhere(
+        (m) => m.contains('flash') && m.contains('3.8'),
         orElse: () => '',
       );
-      if (flash25.isNotEmpty) {
-        selectedModel = flash25;
+      if (flash38.isNotEmpty) {
+        selectedModel = flash38;
       } else {
-        // Prioridade 2: Modelos Flash 2.0
-        final flash20 = availableModels.firstWhere(
-          (m) => m.contains('flash') && m.contains('2.0'),
+        // Prioridade 2: Modelos Flash 3.6 ou 3.5 (ex: gemini-3.5-flash-lite)
+        final flash3x = availableModels.firstWhere(
+          (m) => m.contains('flash') && (m.contains('3.6') || m.contains('3.5') || m.contains('3.')),
           orElse: () => '',
         );
-        if (flash20.isNotEmpty) {
-          selectedModel = flash20;
+        if (flash3x.isNotEmpty) {
+          selectedModel = flash3x;
         } else {
-          // Prioridade 3: Qualquer variante Flash (ex: gemini-1.5-flash-latest, etc)
+          // Prioridade 3: Qualquer variante Flash
           final anyFlash = availableModels.firstWhere(
             (m) => m.contains('flash'),
             orElse: () => '',
@@ -178,22 +182,39 @@ Regras obrigatórias:
       final errLower = e.toString().toLowerCase();
       final isModelError = errLower.contains('not found') ||
           errLower.contains('not supported') ||
+          errLower.contains('no longer available') ||
+          errLower.contains('deprecated') ||
+          errLower.contains('update your code') ||
           errLower.contains('404') ||
           errLower.contains('is not found for api version');
 
       if (isModelError) {
-        // Tenta redescobrir o modelo ativo consultando a API
-        final refreshedModel = await resolveBestModel(cleanApiKey, forceRefresh: true);
-        if (refreshedModel != activeModel) {
-          try {
-            activeModel = refreshedModel;
-            responseText = await executeGenerationWith(activeModel);
-          } catch (_) {
-            // Continua para a lista estática de fallback caso ainda falhe
+        // 1. Tenta extrair sugestão direta da mensagem de erro do Google (ex: "use models/gemini-3.8-flash")
+        final suggestionMatch = RegExp(r'use (?:models/)?([a-zA-Z0-9\.\-_]+)').firstMatch(e.toString());
+        if (suggestionMatch != null) {
+          final suggested = suggestionMatch.group(1);
+          if (suggested != null && suggested.isNotEmpty && suggested != activeModel) {
+            try {
+              activeModel = suggested;
+              responseText = await executeGenerationWith(activeModel);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString(AppConstants.keyGeminiModel, activeModel);
+            } catch (_) {}
           }
         }
 
-        // Se ainda não obteve resposta, itera pela lista de fallbacks conhecidos
+        // 2. Se ainda não obteve resposta, tenta redescobrir o modelo ativo consultando a API
+        if (responseText == null) {
+          final refreshedModel = await resolveBestModel(cleanApiKey, forceRefresh: true);
+          if (refreshedModel != activeModel) {
+            try {
+              activeModel = refreshedModel;
+              responseText = await executeGenerationWith(activeModel);
+            } catch (_) {}
+          }
+        }
+
+        // 3. Se ainda não obteve resposta, itera pela lista de fallbacks conhecidos
         if (responseText == null) {
           for (final candidate in AppConstants.fallbackGeminiModels) {
             if (candidate == activeModel) continue;
@@ -203,9 +224,7 @@ Regras obrigatórias:
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString(AppConstants.keyGeminiModel, candidate);
               break;
-            } catch (_) {
-              // Tenta o próximo candidato
-            }
+            } catch (_) {}
           }
         }
       }

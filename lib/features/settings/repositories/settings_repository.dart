@@ -39,7 +39,11 @@ class SettingsRepository {
   Future<String> getGeminiModel() async {
     final prefs = await SharedPreferences.getInstance();
     final savedModel = prefs.getString(AppConstants.keyGeminiModel);
-    if (savedModel != null && savedModel.trim().isNotEmpty) {
+    if (savedModel != null &&
+        savedModel.trim().isNotEmpty &&
+        savedModel != 'gemini-1.5-flash' &&
+        savedModel != 'gemini-2.5-flash' &&
+        savedModel != 'gemini-2.0-flash') {
       return savedModel.trim();
     }
     return AppConstants.defaultGeminiModel;
