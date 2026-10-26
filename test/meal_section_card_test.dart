@@ -169,4 +169,74 @@ void main() {
     expect(notifier.updatedId, 'log-1');
     expect(notifier.updatedAmount, 75.0);
   });
+
+  testWidgets('Header não possui o ícone de copiar e expande para exibir os macronutrientes ao clicar quando houver alimentos', (WidgetTester tester) async {
+    final food = FoodItem(
+      id: 'f-1',
+      name: 'Ovo Cozido',
+      calories: 143,
+      protein: 13.0,
+      carbs: 1.0,
+      fat: 9.5,
+    );
+
+    final log = MealLog(
+      id: 'log-1',
+      date: DateTime(2026, 10, 26),
+      mealType: MealType.breakfast,
+      foodId: food.id,
+      consumedAmount: 100,
+      food: food,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealLogsProvider.overrideWith((ref) => TestMealNotifier()),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MealSectionCard(
+              mealType: MealType.breakfast,
+              logs: [log],
+              selectedDate: DateTime(2026, 10, 26),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // O ícone de copiar foi removido do header
+    expect(find.byIcon(Icons.copy_all_outlined), findsNothing);
+
+    // Inicialmente, os macronutrientes da refeição estão recolhidos
+    expect(find.text('Proteínas'), findsNothing);
+    expect(find.text('Carboidratos'), findsNothing);
+    expect(find.text('Gorduras'), findsNothing);
+
+    // O chevron para expandir deve estar visível
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+
+    // Clica no header da refeição
+    await tester.tap(find.text('Café da Manhã'));
+    await tester.pumpAndSettle();
+
+    // Agora os macronutrientes da refeição devem estar visíveis!
+    expect(find.text('Proteínas'), findsOneWidget);
+    expect(find.text('13.0g'), findsOneWidget);
+    expect(find.text('Carboidratos'), findsOneWidget);
+    expect(find.text('1.0g'), findsOneWidget);
+    expect(find.text('Gorduras'), findsOneWidget);
+    expect(find.text('9.5g'), findsOneWidget);
+
+    // Chevron mudou para cima
+    expect(find.byIcon(Icons.keyboard_arrow_up), findsOneWidget);
+
+    // Clica novamente no header para recolher
+    await tester.tap(find.text('Café da Manhã'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Proteínas'), findsNothing);
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+  });
 }

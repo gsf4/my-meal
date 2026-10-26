@@ -8,7 +8,7 @@ import 'package:my_meal/features/meals/presentation/screens/manual_add_meal_dial
 import 'package:my_meal/features/meals/presentation/widgets/clone_meal_sheet.dart';
 import 'package:my_meal/features/meals/providers/meal_providers.dart';
 
-class MealSectionCard extends ConsumerWidget {
+class MealSectionCard extends ConsumerStatefulWidget {
   final MealType mealType;
   final List<MealLog> logs;
   final DateTime selectedDate;
@@ -20,12 +20,19 @@ class MealSectionCard extends ConsumerWidget {
     required this.selectedDate,
   });
 
-  void _openManualAdd(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<MealSectionCard> createState() => _MealSectionCardState();
+}
+
+class _MealSectionCardState extends ConsumerState<MealSectionCard> {
+  bool _isExpanded = false;
+
+  void _openManualAdd(BuildContext context) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => ManualAddMealDialog(
-        initialMealType: mealType,
-        selectedDate: selectedDate,
+        initialMealType: widget.mealType,
+        selectedDate: widget.selectedDate,
       ),
     );
 
@@ -38,7 +45,7 @@ class MealSectionCard extends ConsumerWidget {
         foodId: food.id,
         mealType: type,
         consumedAmount: amount,
-        date: selectedDate,
+        date: widget.selectedDate,
         food: food,
       );
     }
@@ -47,12 +54,12 @@ class MealSectionCard extends ConsumerWidget {
   void _openCloneSheet(BuildContext context) {
     CloneMealSheet.show(
       context,
-      targetMealType: mealType,
-      targetDate: selectedDate,
+      targetMealType: widget.mealType,
+      targetDate: widget.selectedDate,
     );
   }
 
-  Future<void> _openEditAmountDialog(BuildContext context, WidgetRef ref, MealLog log) async {
+  Future<void> _openEditAmountDialog(BuildContext context, MealLog log) async {
     final food = log.food;
     final initialAmount = log.consumedAmount;
     final textController = TextEditingController(
@@ -178,7 +185,7 @@ class MealSectionCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmDeleteLog(BuildContext context, WidgetRef ref, MealLog log) async {
+  Future<void> _confirmDeleteLog(BuildContext context, MealLog log) async {
     final foodName = log.food?.name ?? 'este alimento';
     final amountText = '${log.consumedAmount.toStringAsFixed(0)}g';
 
@@ -187,7 +194,7 @@ class MealSectionCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Remover Alimento'),
         content: Text(
-          'Deseja remover "$foodName" ($amountText) de ${mealType.detailedLabel}?',
+          'Deseja remover "$foodName" ($amountText) de ${widget.mealType.detailedLabel}?',
         ),
         actions: [
           TextButton(
@@ -210,7 +217,7 @@ class MealSectionCard extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('"$foodName" foi removido de ${mealType.detailedLabel}.'),
+            content: Text('"$foodName" foi removido de ${widget.mealType.detailedLabel}.'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -219,11 +226,21 @@ class MealSectionCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     double totalCalories = 0.0;
-    for (final log in logs) {
+    double totalProtein = 0.0;
+    double totalCarbs = 0.0;
+    double totalFat = 0.0;
+
+    for (final log in widget.logs) {
       totalCalories += log.calories;
+      totalProtein += log.protein;
+      totalCarbs += log.carbs;
+      totalFat += log.fat;
     }
+
+    final hasFoods = widget.logs.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -235,40 +252,98 @@ class MealSectionCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(mealType.icon, color: AppTheme.primaryColor, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    mealType.detailedLabel,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              // Header da Refeição (Clicável para expandir macros quando houver alimentos)
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: hasFoods
+                    ? () {
+                        setState(() {
+                          _isExpanded = !_isExpanded;
+                        });
+                      }
+                    : null,
+                onLongPress: () => _openCloneSheet(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                  child: Row(
+                    children: [
+                      Icon(widget.mealType.icon, color: AppTheme.primaryColor, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.mealType.detailedLabel,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${totalCalories.toStringAsFixed(0)} kcal',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      if (hasFoods) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: Colors.grey.shade500,
+                        ),
+                      ],
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
+                        tooltip: 'Adicionar alimento',
+                        onPressed: () => _openManualAdd(context),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Text(
-                    '${totalCalories.toStringAsFixed(0)} kcal',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.copy_all_outlined, size: 20, color: Colors.grey),
-                    tooltip: 'Copiar refeição de outro dia (ou segure no card)',
-                    onPressed: () => _openCloneSheet(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
-                    tooltip: 'Adicionar alimento',
-                    onPressed: () => _openManualAdd(context, ref),
-                  ),
-                ],
+                ),
               ),
-              if (logs.isNotEmpty) ...[
+
+              // Seção expansível com a quantidade de cada macronutriente na refeição
+              if (hasFoods && _isExpanded) ...[
+                Container(
+                  margin: const EdgeInsets.only(top: 8, bottom: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMacroBadge(
+                        label: 'Proteínas',
+                        value: '${totalProtein.toStringAsFixed(1)}g',
+                        color: AppTheme.proteinColor,
+                        isDark: isDark,
+                      ),
+                      Container(width: 1, height: 26, color: Colors.grey.withValues(alpha: 0.2)),
+                      _buildMacroBadge(
+                        label: 'Carboidratos',
+                        value: '${totalCarbs.toStringAsFixed(1)}g',
+                        color: AppTheme.carbsColor,
+                        isDark: isDark,
+                      ),
+                      Container(width: 1, height: 26, color: Colors.grey.withValues(alpha: 0.2)),
+                      _buildMacroBadge(
+                        label: 'Gorduras',
+                        value: '${totalFat.toStringAsFixed(1)}g',
+                        color: AppTheme.fatColor,
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Lista de Alimentos
+              if (hasFoods) ...[
                 const Divider(height: 16),
-                ...logs.map((log) {
+                ...widget.logs.map((log) {
                   final isPending = log.food?.isPendingNutrition ?? false;
 
                   return InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () => _openEditAmountDialog(context, ref, log),
+                    onTap: () => _openEditAmountDialog(context, log),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                       child: Row(
@@ -315,7 +390,7 @@ class MealSectionCard extends ConsumerWidget {
                           IconButton(
                             icon: const Icon(Icons.close, size: 16, color: Colors.grey),
                             tooltip: 'Remover da refeição',
-                            onPressed: () => _confirmDeleteLog(context, ref, log),
+                            onPressed: () => _confirmDeleteLog(context, log),
                           ),
                         ],
                       ),
@@ -327,6 +402,36 @@ class MealSectionCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMacroBadge({
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }
