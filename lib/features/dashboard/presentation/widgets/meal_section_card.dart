@@ -40,11 +40,17 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
       final food = result['food'] as FoodItem;
       final type = result['mealType'] as MealType;
       final amount = result['amount'] as double;
+      final portionId = result['portionId'] as String?;
+      final portionName = result['portionName'] as String?;
+      final portionQuantity = result['portionQuantity'] as double?;
 
       await ref.read(mealLogsProvider.notifier).addMealLog(
         foodId: food.id,
         mealType: type,
         consumedAmount: amount,
+        portionId: portionId,
+        portionName: portionName,
+        portionQuantity: portionQuantity,
         date: widget.selectedDate,
         food: food,
       );
@@ -61,14 +67,18 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
 
   Future<void> _openEditAmountDialog(BuildContext context, MealLog log) async {
     final food = log.food;
-    final initialAmount = log.consumedAmount;
+    final isPortion = log.portionName != null && log.portionQuantity != null && log.portionQuantity! > 0;
+    final portionUnitWeight = isPortion ? (log.consumedAmount / log.portionQuantity!) : 1.0;
+
+    final initialCount = isPortion ? log.portionQuantity! : log.consumedAmount;
     final textController = TextEditingController(
-      text: initialAmount % 1 == 0 
-          ? initialAmount.toInt().toString() 
-          : initialAmount.toString(),
+      text: initialCount % 1 == 0 
+          ? initialCount.toInt().toString() 
+          : initialCount.toString(),
     );
 
-    double currentAmount = initialAmount;
+    double currentAmount = log.consumedAmount;
+    double currentPortionCount = isPortion ? log.portionQuantity! : 0.0;
 
     await showDialog(
       context: context,
@@ -79,6 +89,11 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
             final previewProtein = food?.calculateProtein(currentAmount) ?? 0.0;
             final previewCarbs = food?.calculateCarbs(currentAmount) ?? 0.0;
             final previewFat = food?.calculateFat(currentAmount) ?? 0.0;
+
+            final unitSuffix = food?.unitType.unitSuffix ?? 'g';
+            final subtitleText = isPortion
+                ? '${currentPortionCount % 1 == 0 ? currentPortionCount.toInt() : currentPortionCount}\u00D7 ${log.portionName} (${currentAmount % 1 == 0 ? currentAmount.toInt() : currentAmount.toStringAsFixed(1)}$unitSuffix)'
+                : '${currentAmount % 1 == 0 ? currentAmount.toInt() : currentAmount.toStringAsFixed(1)}$unitSuffix';
 
             return AlertDialog(
               title: const Text('Editar Quantidade'),
@@ -91,20 +106,36 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                       food?.name ?? 'Alimento',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-                    const SizedBox(height: 12),
+                    if (isPortion)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 8),
+                        child: Text(
+                          'Medida: ${log.portionName} (${portionUnitWeight % 1 == 0 ? portionUnitWeight.toInt() : portionUnitWeight}$unitSuffix)',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 12),
                     TextField(
                       controller: textController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       autofocus: true,
                       decoration: InputDecoration(
-                        labelText: food != null ? 'Quantidade (${food.unitType.label})' : 'Quantidade',
-                        suffixText: food?.unitType.unitSuffix ?? 'g',
+                        labelText: isPortion 
+                            ? 'Quantidade de "${log.portionName}"'
+                            : (food != null ? 'Quantidade (${food.unitType.label})' : 'Quantidade'),
+                        suffixText: isPortion ? 'porção(ões)' : unitSuffix,
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         final parsed = double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
                         setDialogState(() {
-                          currentAmount = parsed;
+                          if (isPortion) {
+                            currentPortionCount = parsed;
+                            currentAmount = parsed * portionUnitWeight;
+                          } else {
+                            currentAmount = parsed;
+                          }
                         });
                       },
                     ),
@@ -122,7 +153,7 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Calorias:', style: TextStyle(fontWeight: FontWeight.w600)),
+                                Text(subtitleText, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                                 Text(
                                   '${previewCalories.toStringAsFixed(0)} kcal',
                                   style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.caloriesColor),
@@ -161,15 +192,24 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final newAmount = double.tryParse(textController.text.replaceAll(',', '.')) ?? 0.0;
-                    if (newAmount > 0) {
+                    final enteredVal = double.tryParse(textController.text.replaceAll(',', '.')) ?? 0.0;
+                    if (enteredVal > 0) {
                       Navigator.of(ctx).pop();
-                      await ref.read(mealLogsProvider.notifier).updateConsumedAmount(log.id, newAmount);
+                      final finalAmount = isPortion ? enteredVal * portionUnitWeight : enteredVal;
+                      final finalPortionQty = isPortion ? enteredVal : null;
+
+                      await ref.read(mealLogsProvider.notifier).updateConsumedAmount(
+                        log.id, 
+                        finalAmount,
+                        newPortionQuantity: finalPortionQty,
+                      );
                       if (context.mounted) {
-                        final formattedNewAmount = food?.unitType.formatAmount(newAmount) ?? '${newAmount.toStringAsFixed(0)}g';
+                        final formattedNew = isPortion
+                            ? '${enteredVal % 1 == 0 ? enteredVal.toInt() : enteredVal}\u00D7 ${log.portionName} (${finalAmount.toStringAsFixed(0)}$unitSuffix)'
+                            : (food?.unitType.formatAmount(finalAmount) ?? '${finalAmount.toStringAsFixed(0)}g');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Quantidade de "${food?.name ?? 'alimento'}" alterada para $formattedNewAmount.'),
+                            content: Text('"${food?.name ?? 'Alimento'}" atualizado para $formattedNew.'),
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -188,7 +228,7 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
 
   Future<void> _confirmDeleteLog(BuildContext context, MealLog log) async {
     final foodName = log.food?.name ?? 'este alimento';
-    final amountText = log.food?.unitType.formatAmount(log.consumedAmount) ?? '${log.consumedAmount.toStringAsFixed(0)}g';
+    final amountText = log.displayAmount;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -360,7 +400,7 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                                 Row(
                                   children: [
                                     Text(
-                                      log.food?.unitType.formatAmount(log.consumedAmount) ?? '${log.consumedAmount.toStringAsFixed(0)}g',
+                                      log.displayAmount,
                                       style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                     ),
                                     const SizedBox(width: 4),

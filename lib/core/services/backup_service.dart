@@ -155,7 +155,7 @@ class BackupService {
     buffer.write('\uFEFF');
 
     // Cabeçalho compatível com Excel (delimitador ponto e vírgula)
-    buffer.writeln('Data;Refeição;Alimento;Quantidade;Unidade;Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g)');
+    buffer.writeln('Data;Refeição;Alimento;Quantidade;Unidade;Porção;Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g)');
 
     final dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -167,12 +167,15 @@ class BackupService {
           ? log.consumedAmount.toInt().toString() 
           : log.consumedAmount.toStringAsFixed(1);
       final unit = log.food?.unitType.unitSuffix ?? 'g';
+      final portionInfo = log.portionName != null && log.portionQuantity != null
+          ? '${log.portionQuantity! % 1 == 0 ? log.portionQuantity!.toInt() : log.portionQuantity}x ${log.portionName}' 
+          : '';
       final cal = log.calories.toStringAsFixed(1);
       final prot = log.protein.toStringAsFixed(1);
       final carbs = log.carbs.toStringAsFixed(1);
       final fat = log.fat.toStringAsFixed(1);
 
-      buffer.writeln('$dateStr;$mealStr;$foodName;$amount;$unit;$cal;$prot;$carbs;$fat');
+      buffer.writeln('$dateStr;$mealStr;$foodName;$amount;$unit;$portionInfo;$cal;$prot;$carbs;$fat');
     }
 
     final tempDir = await getTemporaryDirectory();
@@ -197,18 +200,19 @@ class BackupService {
     final buffer = StringBuffer();
     buffer.write('\uFEFF'); // BOM UTF-8
 
-    buffer.writeln('Nome;Base;Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g);Status');
+    buffer.writeln('Nome;Base;Porções;Calorias (kcal);Proteínas (g);Carboidratos (g);Gorduras (g);Status');
 
     for (final food in foods) {
       final name = food.name.replaceAll(';', ',');
       final unit = food.unitType.label;
+      final portionsSummary = food.portions.map((p) => '${p.name} (${p.grams}g)').join(' | ').replaceAll(';', ',');
       final cal = food.calories.toStringAsFixed(1);
       final prot = food.protein.toStringAsFixed(1);
       final carbs = food.carbs.toStringAsFixed(1);
       final fat = food.fat.toStringAsFixed(1);
       final status = food.isPendingNutrition ? 'Pendente de Macros' : 'Completo';
 
-      buffer.writeln('$name;$unit;$cal;$prot;$carbs;$fat;$status');
+      buffer.writeln('$name;$unit;$portionsSummary;$cal;$prot;$carbs;$fat;$status');
     }
 
     final tempDir = await getTemporaryDirectory();

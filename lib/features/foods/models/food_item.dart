@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:my_meal/features/foods/models/food_portion.dart';
+
 enum FoodUnitType {
   per100g('Por 100g', 'g', 'em 100g'),
   per1g('Por 1g', 'g', 'em 1g'),
@@ -94,6 +97,7 @@ class FoodItem {
   final double carbs;
   final double fat;
   final bool isPendingNutrition;
+  final List<FoodPortion> portions;
   final DateTime createdAt;
 
   FoodItem({
@@ -105,6 +109,7 @@ class FoodItem {
     this.carbs = 0.0,
     this.fat = 0.0,
     this.isPendingNutrition = false,
+    this.portions = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -128,6 +133,18 @@ class FoodItem {
     return fat * factor;
   }
 
+  double calculatePortionCalories(FoodPortion portion, [double count = 1.0]) =>
+      calculateCalories(portion.grams * count);
+
+  double calculatePortionProtein(FoodPortion portion, [double count = 1.0]) =>
+      calculateProtein(portion.grams * count);
+
+  double calculatePortionCarbs(FoodPortion portion, [double count = 1.0]) =>
+      calculateCarbs(portion.grams * count);
+
+  double calculatePortionFat(FoodPortion portion, [double count = 1.0]) =>
+      calculateFat(portion.grams * count);
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -138,11 +155,31 @@ class FoodItem {
       'carbs': carbs,
       'fat': fat,
       'is_pending_nutrition': isPendingNutrition ? 1 : 0,
+      'portions': portions.isNotEmpty ? jsonEncode(portions.map((p) => p.toMap()).toList()) : null,
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory FoodItem.fromMap(Map<String, dynamic> map) {
+    List<FoodPortion> portions = const [];
+    if (map['portions'] != null) {
+      try {
+        final rawPortions = map['portions'];
+        if (rawPortions is String && rawPortions.trim().isNotEmpty) {
+          final decoded = jsonDecode(rawPortions);
+          if (decoded is List) {
+            portions = decoded
+                .map((p) => FoodPortion.fromMap(p as Map<String, dynamic>))
+                .toList();
+          }
+        } else if (rawPortions is List) {
+          portions = rawPortions
+              .map((p) => FoodPortion.fromMap(p as Map<String, dynamic>))
+              .toList();
+        }
+      } catch (_) {}
+    }
+
     return FoodItem(
       id: map['id'] as String,
       name: map['name'] as String,
@@ -152,6 +189,7 @@ class FoodItem {
       carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
       fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
       isPendingNutrition: (map['is_pending_nutrition'] as int? ?? 0) == 1,
+      portions: portions,
       createdAt: map['created_at'] != null 
           ? DateTime.parse(map['created_at'] as String) 
           : DateTime.now(),
@@ -167,6 +205,7 @@ class FoodItem {
     double? carbs,
     double? fat,
     bool? isPendingNutrition,
+    List<FoodPortion>? portions,
     DateTime? createdAt,
   }) {
     return FoodItem(
@@ -178,6 +217,7 @@ class FoodItem {
       carbs: carbs ?? this.carbs,
       fat: fat ?? this.fat,
       isPendingNutrition: isPendingNutrition ?? this.isPendingNutrition,
+      portions: portions ?? this.portions,
       createdAt: createdAt ?? this.createdAt,
     );
   }

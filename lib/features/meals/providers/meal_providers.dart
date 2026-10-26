@@ -60,6 +60,9 @@ class MealLogsNotifier extends StateNotifier<AsyncValue<List<MealLog>>> {
     required String foodId,
     required MealType mealType,
     required double consumedAmount,
+    String? portionId,
+    String? portionName,
+    double? portionQuantity,
     DateTime? date,
     FoodItem? food,
   }) async {
@@ -70,6 +73,9 @@ class MealLogsNotifier extends StateNotifier<AsyncValue<List<MealLog>>> {
       mealType: mealType,
       foodId: foodId,
       consumedAmount: consumedAmount,
+      portionId: portionId,
+      portionName: portionName,
+      portionQuantity: portionQuantity,
       food: food,
     );
     await _repository.insertMealLog(log);
@@ -86,8 +92,12 @@ class MealLogsNotifier extends StateNotifier<AsyncValue<List<MealLog>>> {
     await loadLogs();
   }
 
-  Future<void> updateConsumedAmount(String id, double newAmount) async {
-    await _repository.updateMealLogAmount(id, newAmount);
+  Future<void> updateConsumedAmount(
+    String id, 
+    double newAmount, {
+    double? newPortionQuantity,
+  }) async {
+    await _repository.updateMealLogAmount(id, newAmount, newPortionQuantity: newPortionQuantity);
     await loadLogs();
   }
 

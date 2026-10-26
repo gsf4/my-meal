@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:my_meal/features/foods/models/food_item.dart';
+import 'package:my_meal/features/foods/models/food_portion.dart';
 
 class FoodFormDialog extends StatefulWidget {
   final FoodItem? initialFood;
@@ -33,6 +34,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
   late final TextEditingController _fatController;
 
   late FoodUnitType _unitType;
+  late List<FoodPortion> _portions;
 
   @override
   void initState() {
@@ -60,6 +62,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
           : (widget.initialFat?.toStringAsFixed(1) ?? '0.0'),
     );
     _unitType = f?.unitType ?? FoodUnitType.per100g;
+    _portions = List.from(f?.portions ?? []);
   }
 
   @override
@@ -70,6 +73,86 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
     _carbsController.dispose();
     _fatController.dispose();
     super.dispose();
+  }
+
+  void _openAddPortionDialog() async {
+    final nameCtrl = TextEditingController();
+    final gramsCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final newPortion = await showDialog<FoodPortion>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nova Porção / Medida'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nome da Porção *',
+                  hintText: 'Ex: Ovo médio, Fatia de pão, 1 colher',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Informe o nome da porção';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: gramsCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Peso / Quantidade (${_unitType.unitSuffix}) *',
+                  hintText: 'Ex: 55',
+                  suffixText: _unitType.unitSuffix,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  final parsed = double.tryParse((val ?? '').replaceAll(',', '.'));
+                  if (parsed == null || parsed <= 0) {
+                    return 'Informe uma quantidade válida';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final grams = double.parse(gramsCtrl.text.replaceAll(',', '.'));
+                final portion = FoodPortion(
+                  id: const Uuid().v4(),
+                  name: nameCtrl.text.trim(),
+                  grams: grams,
+                );
+                Navigator.of(ctx).pop(portion);
+              }
+            },
+            child: const Text('Adicionar'),
+          ),
+        ],
+      ),
+    );
+
+    if (newPortion != null) {
+      setState(() {
+        _portions.add(newPortion);
+      });
+    }
   }
 
   void _submit() {
@@ -85,6 +168,7 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
       carbs: double.tryParse(_carbsController.text.replaceAll(',', '.')) ?? 0.0,
       fat: double.tryParse(_fatController.text.replaceAll(',', '.')) ?? 0.0,
       isPendingNutrition: false,
+      portions: _portions,
     );
 
     Navigator.of(context).pop(food);
@@ -195,6 +279,80 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
                   ),
                 ],
               ),
+              const SizedBox(height: 18),
+              const Divider(),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Porções / Medidas Personalizadas',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Adicionar', style: TextStyle(fontSize: 12)),
+                    onPressed: _openAddPortionDialog,
+                  ),
+                ],
+              ),
+              if (_portions.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    'Opcional: cadastre medidas como "Ovo médio (55g)" ou "Fatia (25g)" para registrar com 1 clique.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  ),
+                )
+              else
+                ..._portions.map((portion) {
+                  final cal = double.tryParse(_calController.text.replaceAll(',', '.')) ?? 0.0;
+                  final factor = _unitType.isBase100 ? (portion.grams / 100.0) : portion.grams;
+                  final portionCal = cal * factor;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardTheme.color ?? Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${portion.name} (${portion.grams % 1 == 0 ? portion.grams.toInt() : portion.grams}${_unitType.unitSuffix})',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                              if (cal > 0)
+                                Text(
+                                  '≈ ${portionCal.toStringAsFixed(0)} kcal por porção',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                          tooltip: 'Remover porção',
+                          onPressed: () {
+                            setState(() {
+                              _portions.remove(portion);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
             ],
           ),
         ),

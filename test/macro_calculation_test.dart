@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_meal/features/foods/models/food_item.dart';
+import 'package:my_meal/features/foods/models/food_portion.dart';
 import 'package:my_meal/features/meals/models/meal_log.dart';
 import 'package:my_meal/features/meals/models/meal_type.dart';
 import 'package:my_meal/features/settings/models/daily_goal.dart';
@@ -174,6 +175,98 @@ void main() {
       expect(goal.protein, 150.0);
       expect(goal.carbs, 200.0);
       expect(goal.fat, 65.0);
+    });
+  });
+
+  group('FoodPortion and Serving Sizes', () {
+    test('Calcula macros de porções personalizadas (ex: Ovo médio 55g e Ovo grande 65g)', () {
+      const mediumEggPortion = FoodPortion(id: 'p-med', name: 'Ovo médio', grams: 55.0);
+      const largeEggPortion = FoodPortion(id: 'p-large', name: 'Ovo grande', grams: 65.0);
+
+      final egg = FoodItem(
+        id: 'egg-taco',
+        name: 'Ovo Cozido Inteiro',
+        unitType: FoodUnitType.per100g,
+        calories: 146.0,
+        protein: 13.3,
+        carbs: 0.6,
+        fat: 9.5,
+        portions: [mediumEggPortion, largeEggPortion],
+      );
+
+      // 1 ovo médio (55g de 100g)
+      expect(egg.calculatePortionCalories(mediumEggPortion), closeTo(80.3, 0.1));
+      expect(egg.calculatePortionProtein(mediumEggPortion), closeTo(7.315, 0.01));
+      expect(egg.calculatePortionCarbs(mediumEggPortion), closeTo(0.33, 0.01));
+      expect(egg.calculatePortionFat(mediumEggPortion), closeTo(5.225, 0.01));
+
+      // 2 ovos médios (110g)
+      expect(egg.calculatePortionCalories(mediumEggPortion, 2), closeTo(160.6, 0.1));
+      expect(egg.calculatePortionProtein(mediumEggPortion, 2), closeTo(14.63, 0.01));
+
+      // 1 ovo grande (65g)
+      expect(egg.calculatePortionCalories(largeEggPortion), closeTo(94.9, 0.1));
+      expect(egg.calculatePortionProtein(largeEggPortion), closeTo(8.645, 0.01));
+    });
+
+    test('Serializa e desserializa FoodPortion em FoodItem (JSON seguro)', () {
+      final food = FoodItem(
+        id: 'bread-1',
+        name: 'Pão Francês',
+        unitType: FoodUnitType.per100g,
+        calories: 300.0,
+        protein: 8.0,
+        carbs: 58.6,
+        fat: 3.1,
+        portions: [
+          const FoodPortion(id: 'p-1', name: '1 unidade inteira', grams: 50.0),
+          const FoodPortion(id: 'p-2', name: '1 fatia / metade', grams: 25.0),
+        ],
+      );
+
+      final map = food.toMap();
+      expect(map['portions'], isA<String>());
+
+      final restored = FoodItem.fromMap(map);
+      expect(restored.portions.length, 2);
+      expect(restored.portions[0].name, '1 unidade inteira');
+      expect(restored.portions[0].grams, 50.0);
+      expect(restored.portions[1].name, '1 fatia / metade');
+      expect(restored.portions[1].grams, 25.0);
+    });
+
+    test('MealLog com porção formata displayAmount adequadamente', () {
+      final bread = FoodItem(
+        id: 'b-1',
+        name: 'Pão',
+        unitType: FoodUnitType.per100g,
+        calories: 300.0,
+      );
+
+      final logWithPortion = MealLog(
+        id: 'l-1',
+        date: DateTime.now(),
+        mealType: MealType.breakfast,
+        foodId: bread.id,
+        consumedAmount: 50.0,
+        portionId: 'p-1',
+        portionName: 'Fatia',
+        portionQuantity: 2.0,
+        food: bread,
+      );
+
+      expect(logWithPortion.displayAmount, '2x Fatia (50g)');
+
+      final logWithoutPortion = MealLog(
+        id: 'l-2',
+        date: DateTime.now(),
+        mealType: MealType.breakfast,
+        foodId: bread.id,
+        consumedAmount: 150.0,
+        food: bread,
+      );
+
+      expect(logWithoutPortion.displayAmount, '150g');
     });
   });
 }

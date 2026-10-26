@@ -32,6 +32,9 @@ class MealRepository {
         ml.meal_type AS ml_meal_type,
         ml.food_id AS ml_food_id,
         ml.consumed_amount AS ml_consumed_amount,
+        ml.portion_id AS ml_portion_id,
+        ml.portion_name AS ml_portion_name,
+        ml.portion_quantity AS ml_portion_quantity,
         ml.created_at AS ml_created_at,
         f.id AS f_id,
         f.name AS f_name,
@@ -41,6 +44,7 @@ class MealRepository {
         f.carbs AS f_carbs,
         f.fat AS f_fat,
         f.is_pending_nutrition AS f_is_pending_nutrition,
+        f.portions AS f_portions,
         f.created_at AS f_created_at
       FROM meal_logs ml
       LEFT JOIN foods f ON ml.food_id = f.id
@@ -51,19 +55,18 @@ class MealRepository {
     return maps.map((row) {
       FoodItem? food;
       if (row['f_id'] != null) {
-        food = FoodItem(
-          id: row['f_id'] as String,
-          name: row['f_name'] as String,
-          unitType: FoodUnitType.fromString(row['f_unit_type'] as String? ?? 'per100g'),
-          calories: (row['f_calories'] as num?)?.toDouble() ?? 0.0,
-          protein: (row['f_protein'] as num?)?.toDouble() ?? 0.0,
-          carbs: (row['f_carbs'] as num?)?.toDouble() ?? 0.0,
-          fat: (row['f_fat'] as num?)?.toDouble() ?? 0.0,
-          isPendingNutrition: (row['f_is_pending_nutrition'] as int? ?? 0) == 1,
-          createdAt: row['f_created_at'] != null 
-              ? DateTime.parse(row['f_created_at'] as String) 
-              : DateTime.now(),
-        );
+        food = FoodItem.fromMap({
+          'id': row['f_id'],
+          'name': row['f_name'],
+          'unit_type': row['f_unit_type'],
+          'calories': row['f_calories'],
+          'protein': row['f_protein'],
+          'carbs': row['f_carbs'],
+          'fat': row['f_fat'],
+          'is_pending_nutrition': row['f_is_pending_nutrition'],
+          'portions': row['f_portions'],
+          'created_at': row['f_created_at'],
+        });
       }
 
       return MealLog(
@@ -72,6 +75,9 @@ class MealRepository {
         mealType: MealType.fromString(row['ml_meal_type'] as String),
         foodId: row['ml_food_id'] as String,
         consumedAmount: (row['ml_consumed_amount'] as num).toDouble(),
+        portionId: row['ml_portion_id'] as String?,
+        portionName: row['ml_portion_name'] as String?,
+        portionQuantity: (row['ml_portion_quantity'] as num?)?.toDouble(),
         createdAt: DateTime.parse(row['ml_created_at'] as String),
         food: food,
       );
@@ -88,6 +94,9 @@ class MealRepository {
         ml.meal_type AS ml_meal_type,
         ml.food_id AS ml_food_id,
         ml.consumed_amount AS ml_consumed_amount,
+        ml.portion_id AS ml_portion_id,
+        ml.portion_name AS ml_portion_name,
+        ml.portion_quantity AS ml_portion_quantity,
         ml.created_at AS ml_created_at,
         f.id AS f_id,
         f.name AS f_name,
@@ -97,6 +106,7 @@ class MealRepository {
         f.carbs AS f_carbs,
         f.fat AS f_fat,
         f.is_pending_nutrition AS f_is_pending_nutrition,
+        f.portions AS f_portions,
         f.created_at AS f_created_at
       FROM meal_logs ml
       LEFT JOIN foods f ON ml.food_id = f.id
@@ -106,19 +116,18 @@ class MealRepository {
     return maps.map((row) {
       FoodItem? food;
       if (row['f_id'] != null) {
-        food = FoodItem(
-          id: row['f_id'] as String,
-          name: row['f_name'] as String,
-          unitType: FoodUnitType.fromString(row['f_unit_type'] as String? ?? 'per100g'),
-          calories: (row['f_calories'] as num?)?.toDouble() ?? 0.0,
-          protein: (row['f_protein'] as num?)?.toDouble() ?? 0.0,
-          carbs: (row['f_carbs'] as num?)?.toDouble() ?? 0.0,
-          fat: (row['f_fat'] as num?)?.toDouble() ?? 0.0,
-          isPendingNutrition: (row['f_is_pending_nutrition'] as int? ?? 0) == 1,
-          createdAt: row['f_created_at'] != null 
-              ? DateTime.parse(row['f_created_at'] as String) 
-              : DateTime.now(),
-        );
+        food = FoodItem.fromMap({
+          'id': row['f_id'],
+          'name': row['f_name'],
+          'unit_type': row['f_unit_type'],
+          'calories': row['f_calories'],
+          'protein': row['f_protein'],
+          'carbs': row['f_carbs'],
+          'fat': row['f_fat'],
+          'is_pending_nutrition': row['f_is_pending_nutrition'],
+          'portions': row['f_portions'],
+          'created_at': row['f_created_at'],
+        });
       }
 
       return MealLog(
@@ -127,6 +136,9 @@ class MealRepository {
         mealType: MealType.fromString(row['ml_meal_type'] as String),
         foodId: row['ml_food_id'] as String,
         consumedAmount: (row['ml_consumed_amount'] as num).toDouble(),
+        portionId: row['ml_portion_id'] as String?,
+        portionName: row['ml_portion_name'] as String?,
+        portionQuantity: (row['ml_portion_quantity'] as num?)?.toDouble(),
         createdAt: DateTime.parse(row['ml_created_at'] as String),
         food: food,
       );
@@ -157,11 +169,21 @@ class MealRepository {
     );
   }
 
-  Future<void> updateMealLogAmount(String id, double newAmount) async {
+  Future<void> updateMealLogAmount(
+    String id, 
+    double newAmount, {
+    double? newPortionQuantity,
+  }) async {
     final db = await _dbHelper.database;
+    final Map<String, dynamic> updateValues = {
+      'consumed_amount': newAmount,
+    };
+    if (newPortionQuantity != null) {
+      updateValues['portion_quantity'] = newPortionQuantity;
+    }
     await db.update(
       'meal_logs',
-      {'consumed_amount': newAmount},
+      updateValues,
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -200,6 +222,9 @@ class MealRepository {
           mealType: targetMealType,
           foodId: item.foodId,
           consumedAmount: item.consumedAmount,
+          portionId: item.portionId,
+          portionName: item.portionName,
+          portionQuantity: item.portionQuantity,
           createdAt: now,
           food: item.food,
         ),

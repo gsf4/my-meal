@@ -14,6 +14,7 @@ class TestMealNotifier extends MealLogsNotifier {
   bool updateAmountCalled = false;
   String? updatedId;
   double? updatedAmount;
+  double? updatedPortionQuantity;
 
   TestMealNotifier() : super(FakeMealRepo(), DateTime(2026, 10, 26)) {
     state = const AsyncValue.data([]);
@@ -26,10 +27,11 @@ class TestMealNotifier extends MealLogsNotifier {
   }
 
   @override
-  Future<void> updateConsumedAmount(String id, double newAmount) async {
+  Future<void> updateConsumedAmount(String id, double newAmount, {double? newPortionQuantity}) async {
     updateAmountCalled = true;
     updatedId = id;
     updatedAmount = newAmount;
+    updatedPortionQuantity = newPortionQuantity;
   }
 }
 
@@ -303,5 +305,78 @@ void main() {
     expect(notifier.updateAmountCalled, isTrue);
     expect(notifier.updatedId, 'log-egg');
     expect(notifier.updatedAmount, 3.0);
+  });
+
+  testWidgets('Exibe porção personalizada (ex: 2x Ovo médio (110g)) e permite editar a quantidade de porções', (WidgetTester tester) async {
+    final eggFood = FoodItem(
+      id: 'egg-taco',
+      name: 'Ovo Cozido Inteiro',
+      unitType: FoodUnitType.per100g,
+      calories: 146.0,
+      protein: 13.3,
+      carbs: 0.6,
+      fat: 9.5,
+    );
+
+    // 2 ovos médios de 55g = 110g
+    final portionLog = MealLog(
+      id: 'log-portion-egg',
+      date: DateTime(2026, 10, 26),
+      mealType: MealType.breakfast,
+      foodId: eggFood.id,
+      consumedAmount: 110.0,
+      portionId: 'portion-med',
+      portionName: 'Ovo médio',
+      portionQuantity: 2.0,
+      food: eggFood,
+    );
+
+    final notifier = TestMealNotifier();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealLogsProvider.overrideWith((ref) => notifier),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: MealSectionCard(
+              mealType: MealType.breakfast,
+              logs: [portionLog],
+              selectedDate: DateTime(2026, 10, 26),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Deve exibir nome do alimento e formato de porção
+    expect(find.text('Ovo Cozido Inteiro'), findsOneWidget);
+    expect(find.text('2x Ovo médio (110g)'), findsOneWidget);
+
+    // Toca para editar
+    await tester.tap(find.text('Ovo Cozido Inteiro'));
+    await tester.pumpAndSettle();
+
+    // Diálogo deve abrir mostrando a porção
+    expect(find.text('Editar Quantidade'), findsOneWidget);
+    expect(find.text('Medida: Ovo médio (55g)'), findsOneWidget);
+    expect(find.text('Quantidade de "Ovo médio"'), findsOneWidget);
+
+    // Altera de 2 para 3 porções (3 * 55g = 165g)
+    await tester.enterText(find.byType(TextField), '3');
+    await tester.pumpAndSettle();
+
+    // Subtítulo atualizado no card de pré-visualização
+    expect(find.text('3× Ovo médio (165g)'), findsOneWidget);
+
+    // Clica em Salvar
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.updateAmountCalled, isTrue);
+    expect(notifier.updatedId, 'log-portion-egg');
+    expect(notifier.updatedAmount, 165.0); // 3 * 55g
+    expect(notifier.updatedPortionQuantity, 3.0);
   });
 }
