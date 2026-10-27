@@ -12,11 +12,18 @@ class VoiceDetectedFoodItem {
   double? estimatedCarbsPer100g;
   double? estimatedFatPer100g;
 
+  String? portionId;
+  String? portionName;
+  double? portionQuantity;
+
   VoiceDetectedFoodItem({
     String? id,
     required this.spokenName,
     this.matchedFood,
     required this.grams,
+    this.portionId,
+    this.portionName,
+    this.portionQuantity,
     this.estimatedCaloriesPer100g,
     this.estimatedProteinPer100g,
     this.estimatedCarbsPer100g,
@@ -25,6 +32,18 @@ class VoiceDetectedFoodItem {
 
   bool get hasMatch => matchedFood != null && !matchedFood!.isPendingNutrition;
   bool get isUnknown => matchedFood == null;
+
+  String get displayAmount {
+    if (portionName != null && portionQuantity != null && portionQuantity! > 0) {
+      final formattedQty = portionQuantity! % 1 == 0 
+          ? portionQuantity!.toInt().toString() 
+          : portionQuantity!.toStringAsFixed(1);
+      final formattedGrams = grams % 1 == 0 ? grams.toInt().toString() : grams.toStringAsFixed(1);
+      final suffix = matchedFood?.unitType.unitSuffix ?? 'g';
+      return '$formattedQty\u00D7 $portionName ($formattedGrams$suffix)';
+    }
+    return matchedFood?.unitType.formatAmount(grams) ?? '${grams.toStringAsFixed(0)}g';
+  }
 
   // Calorias calculadas ou estimadas
   double get displayCalories {
@@ -72,6 +91,9 @@ class VoiceDetectedFoodItem {
     String? spokenName,
     FoodItem? matchedFood,
     double? grams,
+    String? portionId,
+    String? portionName,
+    double? portionQuantity,
     double? estimatedCaloriesPer100g,
     double? estimatedProteinPer100g,
     double? estimatedCarbsPer100g,
@@ -82,6 +104,9 @@ class VoiceDetectedFoodItem {
       spokenName: spokenName ?? this.spokenName,
       matchedFood: matchedFood ?? this.matchedFood,
       grams: grams ?? this.grams,
+      portionId: portionId ?? this.portionId,
+      portionName: portionName ?? this.portionName,
+      portionQuantity: portionQuantity ?? this.portionQuantity,
       estimatedCaloriesPer100g: estimatedCaloriesPer100g ?? this.estimatedCaloriesPer100g,
       estimatedProteinPer100g: estimatedProteinPer100g ?? this.estimatedProteinPer100g,
       estimatedCarbsPer100g: estimatedCarbsPer100g ?? this.estimatedCarbsPer100g,

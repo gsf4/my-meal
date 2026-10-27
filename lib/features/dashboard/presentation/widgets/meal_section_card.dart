@@ -7,6 +7,7 @@ import 'package:my_meal/features/meals/models/meal_type.dart';
 import 'package:my_meal/features/meals/presentation/screens/manual_add_meal_dialog.dart';
 import 'package:my_meal/features/meals/presentation/widgets/clone_meal_sheet.dart';
 import 'package:my_meal/features/meals/providers/meal_providers.dart';
+import 'package:my_meal/features/meal_planner/presentation/widgets/plan_meal_dialog.dart';
 
 class MealSectionCard extends ConsumerStatefulWidget {
   final MealType mealType;
@@ -26,6 +27,14 @@ class MealSectionCard extends ConsumerStatefulWidget {
 
 class _MealSectionCardState extends ConsumerState<MealSectionCard> {
   bool _isExpanded = false;
+
+  void _openPlanMeal(BuildContext context) {
+    PlanMealDialog.show(
+      context,
+      mealType: widget.mealType,
+      targetDate: widget.selectedDate,
+    );
+  }
 
   void _openManualAdd(BuildContext context) async {
     final result = await showDialog<Map<String, dynamic>>(
@@ -327,7 +336,12 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                           color: Colors.grey.shade500,
                         ),
                       ],
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
+                      IconButton(
+                        icon: const Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6)),
+                        tooltip: 'Planejar com IA',
+                        onPressed: () => _openPlanMeal(context),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
                         tooltip: 'Adicionar alimento',
@@ -372,6 +386,32 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                         isDark: isDark,
                       ),
                     ],
+                  ),
+                ),
+              ],
+
+              // Estado Vazio: Atalho para planejar refeição com IA
+              if (!hasFoods) ...[
+                const SizedBox(height: 4),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _openPlanMeal(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    child: Row(
+                      children: [
+                        Icon(Icons.auto_awesome, size: 14, color: const Color(0xFF8B5CF6).withValues(alpha: 0.8)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Planejar ${widget.mealType.label.toLowerCase()} com IA por voz...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_meal/core/constants/app_constants.dart';
 import 'package:my_meal/features/foods/repositories/food_repository.dart';
+import 'package:my_meal/features/meal_planner/services/meal_plan_optimizer.dart';
 import 'package:my_meal/features/meals/models/meal_type.dart';
 import 'package:my_meal/features/voice_logging/models/voice_meal_result.dart';
 
@@ -118,21 +119,6 @@ class GeminiVoiceService {
     required String audioPath,
     required String apiKey,
   }) async {
-    final cleanApiKey = apiKey.trim();
-    if (cleanApiKey.isEmpty) {
-      throw Exception(
-        'Chave da API do Gemini não configurada. '
-        'Por favor, adicione sua chave nas Configurações do app ou no arquivo .env.',
-      );
-    }
-
-    final audioFile = File(audioPath);
-    if (!await audioFile.exists()) {
-      throw Exception('Arquivo de áudio não encontrado para processamento.');
-    }
-
-    final audioBytes = await audioFile.readAsBytes();
-
     const promptText = '''
 Você é um assistente de nutrição em português do aplicativo My Meal.
 Analise com atenção a fala do usuário no áudio fornecido e extraia todos os alimentos consumidos, suas quantidades convertidas para gramas e as estimativas nutricionais por 100g.
@@ -157,6 +143,100 @@ Regras obrigatórias:
 2. Se o usuário citar explicitamente a refeição (ex: "no almoço comi...", "café da manhã", "janta"), defina "meal_type" adequadamente. Se não citar, utilize a refeição mais compatível com o tipo de alimento.
 3. Se não for possível identificar nenhum alimento no áudio, retorne "items": [].
 ''';
+
+    final responseText = await _sendAudioToGemini(
+      audioPath: audioPath,
+      apiKey: apiKey,
+      promptText: promptText,
+    );
+
+    return await _parseGeminiResponse(responseText);
+  }
+
+  /// Planeja uma refeição calculando as quantidades ideais dos alimentos falados
+  /// para bater a meta de proteína e preencher as calorias restantes do dia.
+  Future<VoiceMealResult> planAudioMeal({
+    required String audioPath,
+    required String apiKey,
+    required double remainingCalories,
+    required double remainingProtein,
+    MealType? targetMealType,
+  }) async {
+    final defaultTypeStr = targetMealType != null ? targetMealType.name : 'dinner';
+    final promptText = '''
+Você é um assistente de nutrição em português do aplicativo My Meal especializado em PLANEJAR REFEIÇÕES.
+O usuário está gravando um áudio dizendo quais alimentos PRETENDE consumir na refeição para bater as metas restantes do dia.
+
+METAS DO USUÁRIO PARA FECHAR O DIA:
+- Proteína restante: ${remainingProtein.toStringAsFixed(1)} g (PRIORIDADE MÁXIMA: deve ser batida obrigatoriamente)
+- Calorias restantes: ${remainingCalories.toStringAsFixed(0)} kcal
+
+Analise com atenção a fala do usuário no áudio e extraia todos os alimentos pretendidos (ex: "goma de tapioca e ovos médios", "frango e arroz").
+Retorne estritamente um JSON no seguinte formato:
+{
+  "meal_type": "$defaultTypeStr",
+  "items": [
+    {
+      "spoken_name": "Nome comum do alimento ou porção em português (ex: ovos médios, goma de tapioca)",
+      "grams": 100.0,
+      "estimated_calories_per_100g": 140.0,
+      "estimated_protein_per_100g": 13.0,
+      "estimated_carbs_per_100g": 0.0,
+      "estimated_fat_per_100g": 9.0
+    }
+  ]
+}
+
+Regras obrigatórias:
+1. Mantenha os nomes dos alimentos fiéis ao que o usuário falou, incluindo termos de medidas/porções como "médio", "grande", "fatia", etc. (ex: "ovos médios", "fatia de pão").
+2. Se o usuário citar explicitamente a refeição (ex: "no jantar", "lanche da noite"), use o tipo correspondente. Caso contrário, use "$defaultTypeStr".
+3. Se não for possível identificar nenhum alimento no áudio, retorne "items": [].
+''';
+
+    final responseText = await _sendAudioToGemini(
+      audioPath: audioPath,
+      apiKey: apiKey,
+      promptText: promptText,
+    );
+
+    final rawResult = await _parseGeminiResponse(
+      responseText,
+      defaultMealType: targetMealType,
+    );
+
+    // Executa a otimização matemática determinística com base nos alimentos do banco local
+    final optimized = MealPlanOptimizer.optimize(
+      items: rawResult.items,
+      targetCalories: remainingCalories,
+      targetProtein: remainingProtein,
+    );
+
+    return VoiceMealResult(
+      suggestedMealType: targetMealType ?? rawResult.suggestedMealType,
+      items: optimized.items,
+      rawTranscript: responseText,
+    );
+  }
+
+  Future<String> _sendAudioToGemini({
+    required String audioPath,
+    required String apiKey,
+    required String promptText,
+  }) async {
+    final cleanApiKey = apiKey.trim();
+    if (cleanApiKey.isEmpty) {
+      throw Exception(
+        'Chave da API do Gemini não configurada. '
+        'Por favor, adicione sua chave nas Configurações do app ou no arquivo .env.',
+      );
+    }
+
+    final audioFile = File(audioPath);
+    if (!await audioFile.exists()) {
+      throw Exception('Arquivo de áudio não encontrado para processamento.');
+    }
+
+    final audioBytes = await audioFile.readAsBytes();
 
     final content = [
       Content.multi([
@@ -281,10 +361,13 @@ Regras obrigatórias:
       }
     }
 
-    return await _parseGeminiResponse(responseText);
+    return responseText;
   }
 
-  Future<VoiceMealResult> _parseGeminiResponse(String rawText) async {
+  Future<VoiceMealResult> _parseGeminiResponse(
+    String rawText, {
+    MealType? defaultMealType,
+  }) async {
     // Limpeza de blocos de código se vierem no formato markdown
     var cleanJson = rawText.trim();
     if (cleanJson.startsWith('```json')) {
@@ -301,8 +384,8 @@ Regras obrigatórias:
     final Map<String, dynamic> parsed = jsonDecode(cleanJson);
 
     // Tipo de refeição sugerido
-    final rawMealType = parsed['meal_type'] as String? ?? 'lunch';
-    final suggestedMealType = MealType.fromString(rawMealType);
+    final rawMealType = parsed['meal_type'] as String? ?? (defaultMealType?.name ?? 'lunch');
+    final suggestedMealType = defaultMealType ?? MealType.fromString(rawMealType);
 
     final rawItems = parsed['items'] as List<dynamic>? ?? [];
     final List<VoiceDetectedFoodItem> detectedItems = [];
@@ -320,12 +403,27 @@ Regras obrigatórias:
 
       // Cruza com o banco de dados local
       final matchedFood = await _foodRepository.findBestMatch(spokenName);
+      String? matchedPortionId;
+      String? matchedPortionName;
+      double? matchedPortionQty;
+
+      if (matchedFood != null) {
+        final portion = _foodRepository.findMatchingPortion(matchedFood, spokenName);
+        if (portion != null) {
+          matchedPortionId = portion.id;
+          matchedPortionName = portion.name;
+          matchedPortionQty = (grams / portion.grams).roundToDouble().clamp(1.0, 99.0);
+        }
+      }
 
       detectedItems.add(
         VoiceDetectedFoodItem(
           spokenName: spokenName,
           matchedFood: matchedFood,
           grams: grams,
+          portionId: matchedPortionId,
+          portionName: matchedPortionName,
+          portionQuantity: matchedPortionQty,
           estimatedCaloriesPer100g: estCal,
           estimatedProteinPer100g: estProt,
           estimatedCarbsPer100g: estCarbs,

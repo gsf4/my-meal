@@ -16,11 +16,17 @@ import 'package:my_meal/features/voice_logging/models/voice_meal_result.dart';
 class VoiceReviewBottomSheet extends ConsumerStatefulWidget {
   final VoiceMealResult initialResult;
   final DateTime targetDate;
+  final bool isPlanningMode;
+  final double? targetRemainingCalories;
+  final double? targetRemainingProtein;
 
   const VoiceReviewBottomSheet({
     super.key,
     required this.initialResult,
     required this.targetDate,
+    this.isPlanningMode = false,
+    this.targetRemainingCalories,
+    this.targetRemainingProtein,
   });
 
   @override
@@ -125,21 +131,29 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
 
   void _editItemGrams(int index) {
     final item = _items[index];
-    final controller = TextEditingController(text: item.grams.toStringAsFixed(0));
+    final isPortion = item.portionName != null && item.portionQuantity != null && item.portionQuantity! > 0;
+    final portionUnitWeight = isPortion ? (item.grams / item.portionQuantity!) : 1.0;
+
+    final initialCount = isPortion ? item.portionQuantity! : item.grams;
+    final controller = TextEditingController(
+      text: initialCount % 1 == 0 ? initialCount.toInt().toString() : initialCount.toString(),
+    );
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Quantidade de ${item.spokenName}'),
+        title: Text('Quantidade de ${item.matchedFood?.name ?? item.spokenName}'),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
           decoration: InputDecoration(
-            labelText: item.matchedFood != null 
-                ? 'Quantidade (${item.matchedFood!.unitType.label})'
-                : 'Quantidade',
-            suffixText: item.matchedFood?.unitType.unitSuffix ?? 'g',
+            labelText: isPortion 
+                ? 'Quantidade de "${item.portionName}"'
+                : (item.matchedFood != null 
+                    ? 'Quantidade (${item.matchedFood!.unitType.label})'
+                    : 'Quantidade'),
+            suffixText: isPortion ? 'porção(ões)' : (item.matchedFood?.unitType.unitSuffix ?? 'g'),
             border: const OutlineInputBorder(),
           ),
         ),
@@ -150,10 +164,15 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
           ),
           ElevatedButton(
             onPressed: () {
-              final newGrams = double.tryParse(controller.text.replaceAll(',', '.')) ?? item.grams;
-              if (newGrams > 0) {
+              final parsed = double.tryParse(controller.text.replaceAll(',', '.')) ?? initialCount;
+              if (parsed > 0) {
                 setState(() {
-                  _items[index].grams = newGrams;
+                  if (isPortion) {
+                    _items[index].portionQuantity = parsed;
+                    _items[index].grams = parsed * portionUnitWeight;
+                  } else {
+                    _items[index].grams = parsed;
+                  }
                 });
               }
               Navigator.of(ctx).pop();
@@ -209,6 +228,9 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
           mealType: _mealType,
           foodId: food.id,
           consumedAmount: item.grams,
+          portionId: item.portionId,
+          portionName: item.portionName,
+          portionQuantity: item.portionQuantity,
           createdAt: now,
           food: food,
         ),
@@ -267,11 +289,14 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, color: AppTheme.primaryColor),
+                Icon(
+                  widget.isPlanningMode ? Icons.auto_awesome : Icons.mic_none_outlined,
+                  color: widget.isPlanningMode ? const Color(0xFF8B5CF6) : AppTheme.primaryColor,
+                ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Revisão do Registro por Voz',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  widget.isPlanningMode ? 'Planejamento de Refeição' : 'Revisão do Registro por Voz',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 IconButton(
@@ -282,6 +307,65 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
             ),
           ),
           const Divider(height: 1),
+
+          // Banner de Metas do Planejamento
+          if (widget.isPlanningMode &&
+              (widget.targetRemainingProtein != null || widget.targetRemainingCalories != null)) ...[
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Color(0xFF8B5CF6), size: 18),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Metas Restantes a Bater',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF8B5CF6)),
+                      ),
+                      const Spacer(),
+                      if (totalProtein >= ((widget.targetRemainingProtein ?? 0) - 1.0))
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.check_circle, color: Colors.green, size: 12),
+                              SizedBox(width: 4),
+                              Text('Proteína batida! 🎉', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Proteína: +${widget.targetRemainingProtein?.toStringAsFixed(0) ?? '0'}g ➔ ${totalProtein.toStringAsFixed(1)}g',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.proteinColor),
+                      ),
+                      Text(
+                        'Calorias: +${widget.targetRemainingCalories?.toStringAsFixed(0) ?? '0'} kcal ➔ ${totalCalories.toStringAsFixed(0)} kcal',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.caloriesColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // Seletor do Tipo de Refeição
           Padding(
@@ -387,7 +471,7 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                                       child: Row(
                                         children: [
                                           Text(
-                                            item.matchedFood?.unitType.formatAmount(item.grams) ?? '${item.grams.toStringAsFixed(0)}g',
+                                            item.displayAmount,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: Colors.black87,
@@ -499,9 +583,9 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: _confirmAndSave,
-                    child: const Text(
-                      'Confirmar e Registrar',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    child: Text(
+                      widget.isPlanningMode ? 'Confirmar Refeição Planejada' : 'Confirmar e Registrar',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
