@@ -367,10 +367,15 @@ class _ManualAddMealDialogState extends ConsumerState<ManualAddMealDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                displaySubtitle,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              Expanded(
+                                child: Text(
+                                  displaySubtitle,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 '${cal.toStringAsFixed(0)} kcal',
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.caloriesColor, fontSize: 13),

@@ -379,4 +379,58 @@ void main() {
     expect(notifier.updatedAmount, 165.0); // 3 * 55g
     expect(notifier.updatedPortionQuantity, 3.0);
   });
+  testWidgets('Renderiza sem overflow em telas estreitas (320px) com refeicao de nome longo', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final food = FoodItem(
+      id: 'f-long',
+      name: 'Pao Integral 12 Graos Especiais com Castanhas',
+      calories: 220,
+      protein: 8.0,
+      carbs: 40.0,
+      fat: 3.5,
+    );
+
+    final log = MealLog(
+      id: 'log-long',
+      date: DateTime(2026, 10, 26),
+      mealType: MealType.snack,
+      foodId: food.id,
+      consumedAmount: 120,
+      portionName: 'Fatia Especial Grande Super Reforcada',
+      portionQuantity: 2,
+      food: food,
+    );
+
+    final notifier = TestMealNotifier();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealLogsProvider.overrideWith((ref) => notifier),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MealSectionCard(
+                mealType: MealType.snack,
+                logs: [log],
+                selectedDate: DateTime(2026, 10, 26),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verifica que renderizou sem nenhuma excecao de overflow
+    expect(tester.takeException(), isNull);
+    expect(find.text('Lanche (Tarde)'), findsOneWidget);
+    expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+  });
 }

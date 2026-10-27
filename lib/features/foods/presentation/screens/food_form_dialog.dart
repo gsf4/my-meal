@@ -285,9 +285,13 @@ class _FoodFormDialogState extends State<FoodFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Porções / Medidas Personalizadas',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  const Expanded(
+                    child: Text(
+                      'Porções / Medidas Personalizadas',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(

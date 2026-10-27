@@ -319,30 +319,49 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                     children: [
                       Icon(widget.mealType.icon, color: AppTheme.primaryColor, size: 22),
                       const SizedBox(width: 8),
-                      Text(
-                        widget.mealType.detailedLabel,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.mealType.detailedLabel,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (hasFoods) ...[
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                size: 20,
+                                color: Colors.grey.shade500,
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 6),
                       Text(
                         '${totalCalories.toStringAsFixed(0)} kcal',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
-                      if (hasFoods) ...[
-                        const SizedBox(width: 4),
-                        Icon(
-                          _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                          size: 20,
-                          color: Colors.grey.shade500,
-                        ),
-                      ],
                       const SizedBox(width: 2),
                       IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        iconSize: 20,
                         icon: const Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6)),
                         tooltip: 'Planejar com IA',
                         onPressed: () => _openPlanMeal(context),
                       ),
                       IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        iconSize: 22,
                         icon: const Icon(Icons.add_circle_outline, color: AppTheme.primaryColor),
                         tooltip: 'Adicionar alimento',
                         onPressed: () => _openManualAdd(context),
@@ -402,12 +421,16 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                       children: [
                         Icon(Icons.auto_awesome, size: 14, color: const Color(0xFF8B5CF6).withValues(alpha: 0.8)),
                         const SizedBox(width: 6),
-                        Text(
-                          'Planejar ${widget.mealType.label.toLowerCase()} com IA por voz...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                            fontStyle: FontStyle.italic,
+                        Expanded(
+                          child: Text(
+                            'Planejar ${widget.mealType.label.toLowerCase()} com IA por voz...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -439,9 +462,13 @@ class _MealSectionCardState extends ConsumerState<MealSectionCard> {
                                 ),
                                 Row(
                                   children: [
-                                    Text(
-                                      log.displayAmount,
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                    Flexible(
+                                      child: Text(
+                                        log.displayAmount,
+                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                     const SizedBox(width: 4),
                                     Icon(Icons.edit_outlined, size: 12, color: Colors.grey.shade500),

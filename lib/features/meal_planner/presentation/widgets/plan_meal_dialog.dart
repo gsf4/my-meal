@@ -169,9 +169,10 @@ class _PlanMealDialogState extends ConsumerState<PlanMealDialog>
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Barra de arraste
           Container(
             width: 44,
@@ -237,11 +238,15 @@ class _PlanMealDialogState extends ConsumerState<PlanMealDialog>
                   children: [
                     const Icon(Icons.flag_outlined, size: 16, color: Color(0xFF8B5CF6)),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Metas restantes do dia:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
+                    const Expanded(
+                      child: Text(
+                        'Metas restantes do dia:',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -368,7 +373,8 @@ class _PlanMealDialogState extends ConsumerState<PlanMealDialog>
           const SizedBox(height: 12),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildBalanceItem({

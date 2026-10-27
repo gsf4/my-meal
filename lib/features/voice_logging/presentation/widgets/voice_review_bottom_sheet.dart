@@ -294,11 +294,14 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                   color: widget.isPlanningMode ? const Color(0xFF8B5CF6) : AppTheme.primaryColor,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  widget.isPlanningMode ? 'Planejamento de Refeição' : 'Revisão do Registro por Voz',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    widget.isPlanningMode ? 'Planejamento de Refeição' : 'Revisão do Registro por Voz',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
@@ -326,11 +329,14 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                     children: [
                       const Icon(Icons.stars_rounded, color: Color(0xFF8B5CF6), size: 18),
                       const SizedBox(width: 6),
-                      const Text(
-                        'Metas Restantes a Bater',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF8B5CF6)),
+                      const Expanded(
+                        child: Text(
+                          'Metas Restantes a Bater',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF8B5CF6)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const Spacer(),
                       if (totalProtein >= ((widget.targetRemainingProtein ?? 0) - 1.0))
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -349,8 +355,10 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    runSpacing: 4,
+                    spacing: 12,
                     children: [
                       Text(
                         'Proteína: +${widget.targetRemainingProtein?.toStringAsFixed(0) ?? '0'}g ➔ ${totalProtein.toStringAsFixed(1)}g',
@@ -469,12 +477,17 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(
-                                            item.displayAmount,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
+                                          Flexible(
+                                            child: Text(
+                                              item.displayAmount,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                           const SizedBox(width: 4),
@@ -585,7 +598,10 @@ class _VoiceReviewBottomSheetState extends ConsumerState<VoiceReviewBottomSheet>
                     onPressed: _confirmAndSave,
                     child: Text(
                       widget.isPlanningMode ? 'Confirmar Refeição Planejada' : 'Confirmar e Registrar',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

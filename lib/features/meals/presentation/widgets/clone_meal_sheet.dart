@@ -153,9 +153,13 @@ class _CloneMealSheetState extends ConsumerState<CloneMealSheet> {
             children: [
               const Icon(Icons.copy_all, color: AppTheme.primaryColor),
               const SizedBox(width: 8),
-              Text(
-                'Copiar para ${widget.targetMealType.detailedLabel}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  'Copiar para ${widget.targetMealType.detailedLabel}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
