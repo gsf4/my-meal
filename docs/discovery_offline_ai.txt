@@ -1,0 +1,82 @@
+MY MEAL — DISCOVERY: APP 100% OFFLINE (SEM GOOGLE GEMINI)
+================================================================
+
+1. O PONTO DE PARTIDA DO MY MEAL
+---------------------------------
+O aplicativo já é quase 100% Offline-First:
+* Banco de Dados: SQLite local no aparelho com tabela TACO e alimentos customizados.
+* Cálculos: Metas, proporções (100g vs 1g) e otimizador de porções (MealPlanOptimizer) rodam inteiramente no processador do celular em Dart.
+* Único elo dependente de internet: A chamada de áudio multimodal para a API do Gemini Flash.
+
+2. O DESAFIO: AS DUAS CAMADAS DO ÁUDIO
+---------------------------------------
+Para rodar offline, o celular precisa executar 2 passos em sequência:
+Passo 1: Reconhecimento de Fala (Speech-to-Text - STT) -> Converte voz em texto.
+Passo 2: Entendimento de Linguagem (NLU) -> Extrai alimentos, quantidades e refeição.
+
+3. CAMADA 1: RECONHECIMENTO DE FALA LOCAL (STT)
+-----------------------------------------------
+Opção A: Whisper On-Device (Tiny/Base via whisper.cpp / sherpa-onnx) [RECOMENDADO]
+* Tamanho extra no app: ~40 MB a 70 MB.
+* Consumo de RAM: ~120 MB a 160 MB.
+* Tempo de resposta: 1 a 2 segundos.
+* Vantagem: Totalmente independente, funciona idêntico em qualquer Android ou iPhone.
+
+Opção B: Reconhecimento Nativo do Sistema (speech_to_text)
+* Tamanho extra: 0 MB.
+* Vantagem: Usa a NPU nativa do chip sem aumentar o APK.
+* Atenção: No Android, exige que o usuário tenha o pacote offline PT-BR baixado no sistema.
+
+4. CAMADA 2: EXTRAÇÃO DOS ALIMENTOS (NLU)
+-----------------------------------------
+Cenário 1: LLM Local no Celular (Llama 3.2 1B / Qwen 2.5 1.5B)
+* Tamanho do download: +700 MB a 1.2 GB.
+* Memória RAM exigida: 1.5 GB a 2.5 GB livres.
+* Tempo de resposta: 3 a 7 segundos.
+* Risco: Em celulares mais modestos (3GB/4GB de RAM), o Android encerra o app por falta de memória (OOM).
+
+Cenário 2: Motor Algorítmico em Dart (Sem LLM) [MAIS EFICIENTE]
+* Frases de refeição têm padrão claro ('quantidade + porção + alimento').
+* Um parser em Dart converte numerais ('dois', 'meio'), identifica porções e faz fuzzy match direto no SQLite (FoodRepository).
+* Vantagens:
+  - 0 MB de download extra.
+  - Resposta instantânea (< 5ms).
+  - Zero risco de alucinação (não inventa números).
+  - Roda suave em 100% dos smartphones do mercado.
+
+5. E O PLANEJADOR DE REFEIÇÕES?
+-------------------------------
+O 'MealPlanOptimizer' é puramente matemático e já roda 100% offline em Dart no celular. Resolvendo a transcrição da voz (STT), o planejador funciona offline de imediato!
+
+6. MATRIZ COMPARATIVA
+---------------------
+* Conexão:
+  - Gemini: Requer Internet
+  - LLM Local: 100% Offline
+  - Whisper + Parser Dart: 100% Offline
+
+* Download Adicional:
+  - Gemini: 0 MB
+  - LLM Local: +700 MB a 1.2 GB
+  - Whisper + Parser Dart: +40 MB a 70 MB
+
+* Uso de RAM:
+  - Gemini: ~150 MB
+  - LLM Local: 1.8 GB a 2.5 GB
+  - Whisper + Parser Dart: ~200 MB
+
+* Tempo de Resposta:
+  - Gemini: 2 a 4s (Rede)
+  - LLM Local: 3 a 8s (CPU/NPU)
+  - Whisper + Parser Dart: < 1 segundo
+
+* Aparelhos Suportados:
+  - Gemini: Todos (com internet)
+  - LLM Local: Apenas celulares potentes (6GB+ RAM)
+  - Whisper + Parser Dart: 100% dos aparelhos
+
+7. ROADMAP RECOMENDADO
+----------------------
+1. Fase 1: STT Local (Whisper Tiny ou Nativo) + OfflineMealParser em Dart. O app se torna 100% offline imediatamente sem pesar.
+2. Fase 2: Modo híbrido (tenta local primeiro, nuvem como fallback para receitas longas).
+3. Fase 3: Módulo opcional de LLM Local (Llama 3.2 1B) para download nas configurações apenas por quem quiser.

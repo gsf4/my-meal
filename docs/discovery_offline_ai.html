@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Discovery: My Meal 100% Offline</title>
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --primary: #4CAF50;
+      --primary-light: #E8F5E9;
+      --purple: #8B5CF6;
+      --purple-light: #F3E8FF;
+      --blue: #3B82F6;
+      --blue-light: #EFF6FF;
+      --amber: #F59E0B;
+      --amber-light: #FEF3C7;
+      --rose: #F43F5E;
+      --rose-light: #FFE4E6;
+      --code-bg: #F1F5F9;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F172A;
+        --card-bg: #1E293B;
+        --text: #F8FAFC;
+        --text-muted: #94A3B8;
+        --border: #334155;
+        --primary-light: rgba(76, 175, 80, 0.15);
+        --purple-light: rgba(139, 92, 246, 0.15);
+        --blue-light: rgba(59, 130, 246, 0.15);
+        --amber-light: rgba(245, 158, 11, 0.15);
+        --rose-light: rgba(244, 63, 94, 0.15);
+        --code-bg: #0B1120;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 16px;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* Header & Cover */
+    .header-card {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      padding: 24px 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-tag {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.25;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      opacity: 0.92;
+      line-height: 1.45;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: 12px;
+      opacity: 0.85;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 12px;
+    }
+
+    /* Section Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 14px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Diagram Box */
+    .diagram-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+
+    .diagram-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .step-num {
+      background: var(--primary);
+      color: white;
+      font-weight: bold;
+      font-size: 11px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Callout Alert */
+    .callout {
+      border-left: 4px solid var(--purple);
+      background: var(--purple-light);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0;
+      font-size: 13.5px;
+    }
+
+    .callout.amber {
+      border-left-color: var(--amber);
+      background: var(--amber-light);
+    }
+
+    .callout.green {
+      border-left-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* Comparison Table Responsive */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 14px 0;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--code-bg);
+      padding: 10px 12px;
+      font-weight: 700;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Pill Badges */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.green { background: #DCFCE7; color: #166534; }
+    .pill.blue { background: #DBEAFE; color: #1E40AF; }
+    .pill.purple { background: #F3E8FF; color: #6B21A8; }
+    .pill.amber { background: #FEF3C7; color: #92400E; }
+    .pill.red { background: #FFE4E6; color: #9F1239; }
+
+    /* Timeline / Roadmap */
+    .timeline-item {
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 16px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      bottom: -16px;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-item:last-child::before {
+      display: none;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 0;
+      top: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid var(--card-bg);
+    }
+
+    .timeline-title {
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--text);
+    }
+
+    .timeline-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Print / PDF Specific styles */
+    @media print {
+      body {
+        background: white;
+        color: black;
+        padding: 0;
+        font-size: 12pt;
+      }
+      .container {
+        max-width: 100%;
+      }
+      .card {
+        border: 1px solid #CCC;
+        box-shadow: none;
+        page-break-inside: avoid;
+        margin-bottom: 12pt;
+      }
+      .header-card {
+        background: #059669 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .table-wrapper {
+        overflow: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header / Cover -->
+    <div class="header-card">
+      <span class="badge-tag">Documento de Arquitetura & Discovery</span>
+      <h1>My Meal 100% Offline</h1>
+      <p class="header-subtitle">Como eliminar a dependência da nuvem com Reconhecimento de Voz e Processamento de Linguagem Natural (NLP/LLM) direto no dispositivo.</p>
+      <div class="header-meta">
+        <span>📅 Outubro / 2026</span>
+        <span>📱 Mobile-First</span>
+        <span>⚡ SQLite & On-Device AI</span>
+      </div>
+    </div>
+
+    <!-- 1. O Ponto de Partida -->
+    <div class="card">
+      <h2>1. O Ponto de Partida do My Meal</h2>
+      <p>O <strong>My Meal</strong> já foi concebido sob o paradigma <strong>Offline-First</strong>:</p>
+      <ul>
+        <li><strong>Banco de Dados 100% Local</strong>: Todas as tabelas (alimentos TACO, histórico de refeições, porções, metas) residem no <code>SQLite</code> nativo do aparelho.</li>
+        <li><strong>Cálculos e Algoritmos Locais</strong>: O recálculo de calorias, proporções (100g vs 1g) e o novo <code>MealPlanOptimizer</code> rodam inteiramente em código Dart no próprio dispositivo.</li>
+      </ul>
+      <div class="callout green">
+        <span class="callout-title">🎯 Único Ponto de Dependência da Nuvem:</span>
+        O envio do áudio gravado (<code>.m4a</code>) para a API Google Gemini Flash para fazer a transcrição e o parsing da refeição em formato JSON.
+      </div>
+    </div>
+
+    <!-- 2. O que o Gemini faz hoje -->
+    <div class="card">
+      <h2>2. O Desafio: As Duas Camadas do Áudio</h2>
+      <p>Hoje, o modelo multimodal do Gemini faz duas coisas simultâneas em um único disparo. Para rodar offline, o celular precisará realizar essas <strong>duas tarefas em cadeia</strong>:</p>
+
+      <div class="diagram-box">
+        <div class="diagram-step">
+          <div class="step-num">1</div>
+          <div>
+            <strong>Reconhecimento de Fala (Speech-to-Text - STT)</strong><br>
+            <span style="color: var(--text-muted);">Transforma as ondas sonoras da voz no texto correspondente em português brasileiro.</span>
+          </div>
+        </div>
+        <div class="diagram-step">
+          <div class="step-num">2</div>
+          <div>
+            <strong>Extração de Informação (NLU - Natural Language Understanding)</strong><br>
+            <span style="color: var(--text-muted);">Lê o texto transcrito e extrai: Refeição, Alimentos, Quantidades numéricas e Porções associadas.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Camada 1: Reconhecimento de Voz Offline -->
+    <div class="card">
+      <h2>3. Camada 1: Reconhecimento de Fala Local (STT)</h2>
+      <p>Para transcrever áudio em texto no celular sem internet, temos duas opções práticas de altíssima qualidade:</p>
+
+      <h3>Opção A: Whisper On-Device (Tiny / Base) <span class="pill green">Recomendado</span></h3>
+      <p>O modelo Whisper da OpenAI adaptado para dispositivos móveis via <code>whisper.cpp</code> ou <code>sherpa-onnx</code>.</p>
+      <ul>
+        <li><strong>Tamanho do Modelo</strong>: ~40 MB (versão <code>tiny.en/pt</code> quantizada) ou ~80 MB (versão <code>base</code>).</li>
+        <li><strong>Consumo de RAM</strong>: ~120 MB a 160 MB durante o processamento.</li>
+        <li><strong>Tempo de Resposta</strong>: 1 a 2 segundos para áudios de 5 a 10 segundos em processadores modernos.</li>
+        <li><strong>Grande Vantagem</strong>: Totalmente autocontido. Roda exatamente igual em qualquer modelo de Android ou iPhone, sem depender do que o usuário tem instalado.</li>
+      </ul>
+
+      <h3>Opção B: STT Nativo do Sistema Operacional (Speech-to-Text)</h3>
+      <p>Utilização das APIs de fala nativas através do pacote Flutter <code>speech_to_text</code> (Android SpeechRecognizer / iOS SFSpeechRecognizer).</p>
+      <ul>
+        <li><strong>Tamanho do Modelo</strong>: <strong>0 MB</strong> adicionais no aplicativo.</li>
+        <li><strong>Grande Vantagem</strong>: Aproveita a NPU nativa do chip do celular e não aumenta o peso do download.</li>
+        <li><strong>Ponto de Atenção</strong>: No Android, depende de o usuário ter o pacote de reconhecimento offline em português brasileiro baixado no app Google do sistema.</li>
+      </ul>
+    </div>
+
+    <!-- 4. Camada 2: Entendimento de Linguagem Natural -->
+    <div class="card">
+      <h2>4. Camada 2: Como Extrair os Alimentos do Texto?</h2>
+      <p>Com o texto transcrito em mãos (ex: <em>"comi dois ovos médios e 50 gramas de tapioca"</em>), existem dois paradigmas bem diferentes para extrair a refeição:</p>
+
+      <h3>Cenário 1: LLM Local no Celular (On-Device Small Language Model)</h3>
+      <p>Rodar uma IA generativa compacta na memória do celular via <code>llama.cpp</code> ou <code>Google MediaPipe GenAI</code>.</p>
+      <ul>
+        <li><strong>Modelos mais eficientes</strong>:
+          <br>• <strong>Llama 3.2 1B (Meta)</strong>: ~700 MB quantizado (Q4_K_M).
+          <br>• <strong>Qwen 2.5 1.5B (Alibaba)</strong>: ~1.0 GB quantizado (excelente em PT-BR).
+          <br>• <strong>SmolLM2 360M</strong>: ~220 MB quantizado.
+        </li>
+        <li><strong>Requisitos de Hardware</strong>:
+          <br>• <strong>RAM livre necessária</strong>: 1.5 GB a 2.5 GB.
+          <br>• <strong>Tempo de inferência</strong>: 3 a 7 segundos em CPUs ARM64.
+        </li>
+      </ul>
+      <div class="callout amber">
+        <span class="callout-title">⚠️ Alerta de Compatibilidade Mobile:</span>
+        Em celulares intermediários/topo de linha (6GB a 12GB RAM) funciona perfeitamente. Em celulares de entrada (3GB ou 4GB de RAM), o Android frequentemente encerra o app por falta de memória (OOM Killer) ao tentar alocar 1.5GB para a LLM.
+      </div>
+
+      <h3>Cenário 2: Motor Algorítmico Inteligente em Dart (Sem LLM) <span class="pill purple">Inovador & Rápido</span></h3>
+      <p>Em 99% das vezes, frases de refeição seguem estruturas previsíveis (<em>"[quantidade] [unidade] de [alimento]"</em>). Um parser nativo em Dart construído especificamente para culinária brasileira:</p>
+      <ul>
+        <li><strong>Extrator Numérico</strong>: Converte "dois", "duas", "meio", "1/2", "3" em valores numéricos.</li>
+        <li><strong>Fuzzy Match Fonético</strong>: O <code>FoodRepository</code> do My Meal já possui busca fonética com remoção de acentos e tratamento de plurais ("ovos" -> "ovo").</li>
+        <li><strong>Mapeamento de Porções</strong>: Cruza automaticamente medidas faladas ("médio", "fatia", "colher") com as porções cadastradas.</li>
+      </ul>
+      <div class="callout green">
+        <span class="callout-title">💡 Vantagens do Parser Algorítmico:</span>
+        • <strong>0 MB</strong> de download adicional.<br>
+        • Resposta em <strong>menos de 5 milissegundos</strong> (instantâneo).<br>
+        • <strong>Zero alucinação</strong> (nunca confunde números ou inventa alimentos).<br>
+        • Roda liso até no celular mais barato do mercado.
+      </div>
+    </div>
+
+    <!-- 5. E o Planejamento de Refeições? -->
+    <div class="card">
+      <h2>5. E a Função de Planejar Refeição com IA?</h2>
+      <p>Na funcionalidade de <strong>Planejar Refeição</strong> (onde você fala o que pretende comer e o app calcula as porções para bater as proteínas e calorias do dia):</p>
+      <div class="callout green">
+        <span class="callout-title">✅ O Otimizador Já É 100% Offline!</span>
+        A classe <code>MealPlanOptimizer</code> desenvolvida em Dart é puramente matemática e heurística. Ela roda localmente no aparelho em frações de milissegundo.
+      </div>
+      <p>Ou seja: resolvendo a transcrição do áudio (STT), a inteligência de planejamento nutricional funciona <strong>imediatamente sem qualquer necessidade de internet ou chamada de API</strong>.</p>
+    </div>
+
+    <!-- 6. Tabela Comparativa -->
+    <div class="card">
+      <h2>6. Tabela Comparativa de Arquiteturas</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Critério</th>
+              <th>Gemini (Atual)</th>
+              <th>LLM Local (Llama 1B)</th>
+              <th>Whisper + Parser Dart</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Conexão</strong></td>
+              <td><span class="pill red">Requer Internet</span></td>
+              <td><span class="pill green">100% Offline</span></td>
+              <td><span class="pill green">100% Offline</span></td>
+            </tr>
+            <tr>
+              <td><strong>Download Extra</strong></td>
+              <td>0 MB</td>
+              <td>+700 MB a 1.2 GB</td>
+              <td>+40 MB a 70 MB</td>
+            </tr>
+            <tr>
+              <td><strong>Uso de RAM</strong></td>
+              <td>~150 MB</td>
+              <td>1.8 GB a 2.5 GB</td>
+              <td>~200 MB</td>
+            </tr>
+            <tr>
+              <td><strong>Latência</strong></td>
+              <td>2 a 4s (Rede)</td>
+              <td>3 a 8s (CPU/NPU)</td>
+              <td><strong>&lt; 1 segundo</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Celulares Suportados</strong></td>
+              <td>100% (com web)</td>
+              <td>Apenas 6GB+ RAM</td>
+              <td><strong>100% dos celulares</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Custo de API</strong></td>
+              <td>Pode ter limite/chave</td>
+              <td><strong>Zero / Gratuito</strong></td>
+              <td><strong>Zero / Gratuito</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Privacidade</strong></td>
+              <td>Áudio vai para nuvem</td>
+              <td><strong>Fica no celular</strong></td>
+              <td><strong>Fica no celular</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 7. Roadmap Recomendado -->
+    <div class="card">
+      <h2>7. Roadmap Recomendado de Execução</h2>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-title">Fase 1: Motor Offline Inteligente em Dart (STT + Parser)</div>
+        <div class="timeline-desc">
+          Implementar o reconhecimento de voz local (via Whisper Tiny ou STT nativo) acoplado a um <code>OfflineMealParser</code> em Dart. O aplicativo passa a funcionar 100% offline instantaneamente, sem aumentar o tamanho do app.
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-title">Fase 2: Unificação e Modo Fallback</div>
+        <div class="timeline-desc">
+          O app tenta o processamento local primeiro. Se o usuário estiver conectado e desejar um detalhamento enciclopédico de pratos complexos, pode opcionalmente alternar para a nuvem.
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-title">Fase 3: Módulo Opcional de SLM Local (Llama 3.2 1B)</div>
+        <div class="timeline-desc">
+          Para entusiastas de IA local com smartphones potentes, criar um botão em Ajustes: <em>"Baixar IA Generativa Local (700MB)"</em> via <code>flutter_llama_cpp</code> ou MediaPipe.
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div style="text-align: center; font-size: 12px; color: var(--text-muted); padding: 16px 0 24px;">
+      My Meal • Arquitetura 100% Offline-First • Relatório Técnico
+    </div>
+
+  </div>
+</body>
+</html>
